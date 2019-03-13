@@ -2,7 +2,7 @@
 
 This repository contains a Go client library for
 [Fortanix](https://fortanix.com/)
-[Self Defending Key Management System](https://fortanix.com/products/sdkms/).
+[Self Defending Key Management Service](https://fortanix.com/products/sdkms/).
 
 Note that some APIs are missing and will be added soon.
 

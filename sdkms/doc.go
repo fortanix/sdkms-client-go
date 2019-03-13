@@ -1,4 +1,4 @@
-// Package sdkms is a Go client library for Fortanix Self-Defending Key Management System (SDKMS).
+// Package sdkms is a Go client library for Fortanix Self Defending Key Management Service (SDKMS).
 //
 // NOTE: This is work in progress.
 //
