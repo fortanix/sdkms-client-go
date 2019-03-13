@@ -1,3 +1,3 @@
-module github.com/fortanix/sdkms-go-sdk
+module github.com/fortanix/sdkms-client-go
 
 require github.com/pkg/errors v0.8.1

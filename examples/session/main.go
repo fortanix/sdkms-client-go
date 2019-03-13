@@ -8,7 +8,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/fortanix/sdkms-go-sdk/sdkms"
+	"github.com/fortanix/sdkms-client-go/sdkms"
 )
 
 const (

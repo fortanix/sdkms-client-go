@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/fortanix/sdkms-go-sdk/sdkms"
+	"github.com/fortanix/sdkms-client-go/sdkms"
 	"github.com/pkg/errors"
 )
 
