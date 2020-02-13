@@ -42,14 +42,14 @@ func (c *Client) fetchWithAuth(ctx context.Context, method, path string, body in
 	}
 	req, err := http.NewRequest(method, c.url(path), reqBody)
 	if err != nil {
-		return errors.Wrap(err, "failed to create request")
+		return errors.Wrap(err, "could not create request")
 	}
 	if auth != nil {
 		auth.setAuthorization(&req.Header)
 	}
 	resp, err := c.HTTPClient.Do(req.WithContext(ctx))
 	if err != nil {
-		return errors.Wrap(err, "failed to make HTTP request")
+		return errors.Wrap(err, "could not make HTTP request")
 	}
 	return parseResponse(resp, response)
 }
@@ -66,7 +66,7 @@ func prepareRequestBody(body interface{}) (io.Reader, error) {
 	bodyBuf := &bytes.Buffer{}
 	if body != nil {
 		if err := json.NewEncoder(bodyBuf).Encode(body); err != nil {
-			return nil, errors.Wrap(err, "failed to serialize request body")
+			return nil, errors.Wrap(err, "could not serialize request body")
 		}
 	}
 	return bodyBuf, nil
@@ -74,18 +74,23 @@ func prepareRequestBody(body interface{}) (io.Reader, error) {
 
 func parseResponse(resp *http.Response, response interface{}) error {
 	defer resp.Body.Close()
+	buf, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return errors.Wrap(err, "could not read response body")
+	}
 	if resp.StatusCode >= 300 {
-		buf, _ := ioutil.ReadAll(resp.Body)
 		return newBackendError(resp.StatusCode, string(buf))
 	}
 	if response != nil {
-		if err := json.NewDecoder(resp.Body).Decode(response); err != nil {
-			return errors.Wrap(err, "failed to decode response body")
+		// Special handling for plugin output
+		if po, ok := response.(*PluginOutput); ok {
+			// Copy the buffer
+			*po = append([]byte{}, buf...)
+			return nil
 		}
-	} else {
-		// Consume response body so that it can be reused
-		// See https://golang.org/pkg/net/http/#Response for documentation
-		io.Copy(ioutil.Discard, resp.Body)
+		if err := json.NewDecoder(bytes.NewReader(buf)).Decode(response); err != nil {
+			return errors.Wrap(err, "could not decode response body")
+		}
 	}
 	return nil
 }

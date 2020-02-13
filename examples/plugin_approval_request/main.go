@@ -33,11 +33,12 @@ func main() {
 	client := sdkms.Client{
 		HTTPClient: http.DefaultClient,
 		Auth:       sdkms.APIKey(myAPIKey),
+		Endpoint:   "https://sdkms.fortanix.com",
 	}
 	ctx := context.Background()
 	input := pluginInput{
 		Data:    someBlob([]byte("hello, world!")),
-		HashAlg: sdkms.DigestAlgorithmSHA256,
+		HashAlg: sdkms.DigestAlgorithmSha256,
 	}
 	approvalReq, err := client.RequestApprovalToInvokePlugin(ctx, pluginID, input, nil)
 	if err != nil {
@@ -55,9 +56,9 @@ func main() {
 	if approvalReq.Status != sdkms.ApprovalStatusApproved {
 		log.Fatalf("request failed or was denied")
 	}
-	res, err := client.GetApprovalRequestOperationResult(ctx, approvalReq.RequestID)
+	res, err := client.GetApprovalRequestResult(ctx, approvalReq.RequestID)
 	if err != nil {
-		log.Fatalf("GetApprovalRequestOperationResult failed: %v", err)
+		log.Fatalf("GetApprovalRequestResult failed: %v", err)
 	}
 	var output sdkms.SignResponse
 	if err := res.Parse(&output); err != nil {

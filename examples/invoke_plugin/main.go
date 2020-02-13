@@ -26,16 +26,20 @@ func main() {
 	client := sdkms.Client{
 		HTTPClient: http.DefaultClient,
 		Auth:       sdkms.APIKey(myAPIKey),
+		Endpoint:   "https://sdkms.fortanix.com",
 	}
 	ctx := context.Background()
 	input := pluginInput{
 		X: 10,
 		Y: 20,
 	}
-	var output pluginOutput
-	err := client.InvokePlugin(ctx, pluginID, input, &output)
+	res, err := client.InvokePlugin(ctx, pluginID, input)
 	if err != nil {
 		log.Fatalf("InvokePlugin failed: %v", err)
+	}
+	var output pluginOutput
+	if err := res.Parse(&output); err != nil {
+		log.Fatalf("Failed to parse plugin output: %v", err)
 	}
 	fmt.Printf("%v + %v = %v\n", input.X, input.Y, output.Sum) // Expected output: 10 + 20 = 30
 }
