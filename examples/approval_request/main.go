@@ -22,10 +22,11 @@ func main() {
 	client := sdkms.Client{
 		HTTPClient: http.DefaultClient,
 		Auth:       sdkms.APIKey(myAPIKey),
+		Endpoint:   "https://sdkms.fortanix.com",
 	}
 	signReq := sdkms.SignRequest{
 		Data:    someBlob([]byte("hello, world")),
-		HashAlg: sdkms.DigestAlgorithmSHA256,
+		HashAlg: sdkms.DigestAlgorithmSha256,
 		Key:     sdkms.SobjectByName(keyName),
 		Mode:    sdkms.SignatureModeRSA(sdkms.RsaSignaturePaddingPKCS1V15()),
 	}
@@ -70,9 +71,9 @@ func signWithApproval(client *sdkms.Client, req sdkms.SignRequest) (*sdkms.SignR
 	}
 	switch approvalRequest.Status {
 	case sdkms.ApprovalStatusApproved, sdkms.ApprovalStatusFailed:
-		res, err := client.GetApprovalRequestOperationResult(ctx, approvalRequest.RequestID)
+		res, err := client.GetApprovalRequestResult(ctx, approvalRequest.RequestID)
 		if err != nil {
-			return nil, errors.Wrap(err, "GetApprovalRequestOperationResult failed")
+			return nil, errors.Wrap(err, "GetApprovalRequestResult failed")
 		}
 		var signResp sdkms.SignResponse
 		if err := res.Parse(&signResp); err != nil {

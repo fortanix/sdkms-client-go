@@ -20,13 +20,14 @@ func main() {
 	client := sdkms.Client{
 		HTTPClient: http.DefaultClient,
 		Auth:       sdkms.APIKey(myAPIKey),
+		Endpoint:   "https://sdkms.fortanix.com",
 	}
 	ctx := context.Background()
 	signReq := sdkms.SignRequest{
 		Data:    someBlob([]byte("hello, world")),
-		HashAlg: sdkms.DigestAlgorithmSHA256,
+		HashAlg: sdkms.DigestAlgorithmSha256,
 		Key:     sdkms.SobjectByName(keyName),
-		Mode:    sdkms.SignatureModeRSA(sdkms.RsaSignaturePaddingPSSMGF1(sdkms.DigestAlgorithmSHA1)),
+		Mode:    sdkms.SignatureModeRSA(sdkms.RsaSignaturePaddingPSSMGF1(sdkms.DigestAlgorithmSha1)),
 	}
 	signResp, err := client.Sign(ctx, signReq)
 	if err != nil {
@@ -35,9 +36,9 @@ func main() {
 	verifyReq := sdkms.VerifyRequest{
 		Signature: signResp.Signature,
 		Key:       sdkms.SobjectByName(keyName),
-		HashAlg:   sdkms.DigestAlgorithmSHA256,
+		HashAlg:   sdkms.DigestAlgorithmSha256,
 		Data:      someBlob([]byte("hello, world")),
-		Mode:      sdkms.SignatureModeRSA(sdkms.RsaSignaturePaddingPSSMGF1(sdkms.DigestAlgorithmSHA1)),
+		Mode:      sdkms.SignatureModeRSA(sdkms.RsaSignaturePaddingPSSMGF1(sdkms.DigestAlgorithmSha1)),
 	}
 	verifyResp, err := client.Verify(ctx, verifyReq)
 	if err != nil {

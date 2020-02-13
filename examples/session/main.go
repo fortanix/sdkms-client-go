@@ -19,6 +19,7 @@ const (
 func main() {
 	client := sdkms.Client{
 		HTTPClient: http.DefaultClient,
+		Endpoint:   "https://sdkms.fortanix.com",
 	}
 	ctx := context.Background()
 	// Establish a session
@@ -31,9 +32,9 @@ func main() {
 
 	encryptReq := sdkms.EncryptRequest{
 		Plain: []byte("hello, world!"),
-		Alg:   sdkms.AlgorithmRSA,
+		Alg:   sdkms.AlgorithmRsa,
 		Key:   sdkms.SobjectByName(keyName),
-		Mode:  sdkms.CryptModeRSA(sdkms.RsaEncryptionPaddingOAEPMGF1(sdkms.DigestAlgorithmSHA1)),
+		Mode:  sdkms.CryptModeRSA(sdkms.RsaEncryptionPaddingOAEPMGF1(sdkms.DigestAlgorithmSha1)),
 	}
 	encryptResp, err := client.Encrypt(ctx, encryptReq)
 	if err != nil {
@@ -44,7 +45,7 @@ func main() {
 		Cipher: encryptResp.Cipher,
 		Iv:     encryptResp.Iv,
 		Key:    sdkms.SobjectByName(keyName),
-		Mode:   sdkms.CryptModeRSA(sdkms.RsaEncryptionPaddingOAEPMGF1(sdkms.DigestAlgorithmSHA1)),
+		Mode:   sdkms.CryptModeRSA(sdkms.RsaEncryptionPaddingOAEPMGF1(sdkms.DigestAlgorithmSha1)),
 	}
 	decryptResp, err := client.Decrypt(ctx, decryptReq)
 	if err != nil {

@@ -20,13 +20,14 @@ func main() {
 	client := sdkms.Client{
 		HTTPClient: http.DefaultClient,
 		Auth:       sdkms.APIKey(myAPIKey),
+		Endpoint:   "https://sdkms.fortanix.com",
 	}
 	ctx := context.Background()
 	encryptReq := sdkms.EncryptRequest{
 		Plain: []byte("hello, world!"),
-		Alg:   sdkms.AlgorithmAES,
+		Alg:   sdkms.AlgorithmAes,
 		Key:   sdkms.SobjectByName(keyName),
-		Mode:  sdkms.CryptModeSymmetric(sdkms.CipherModeCBC),
+		Mode:  sdkms.CryptModeSymmetric(sdkms.CipherModeCbc),
 	}
 	encryptResp, err := client.Encrypt(ctx, encryptReq)
 	if err != nil {
@@ -37,7 +38,7 @@ func main() {
 		Cipher: encryptResp.Cipher,
 		Iv:     encryptResp.Iv,
 		Key:    sdkms.SobjectByName(keyName),
-		Mode:   sdkms.CryptModeSymmetric(sdkms.CipherModeCBC),
+		Mode:   sdkms.CryptModeSymmetric(sdkms.CipherModeCbc),
 	}
 	decryptResp, err := client.Decrypt(ctx, decryptReq)
 	if err != nil {
