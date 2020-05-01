@@ -33,9 +33,11 @@ type SubscriptionTypeCustom struct {
 	MaxOperation *uint64 `json:"max_operation,omitempty"`
 }
 type SubscriptionTypeReseller struct {
-	MaxPlugin    *uint32 `json:"max_plugin,omitempty"`
-	MaxOperation *uint64 `json:"max_operation,omitempty"`
-	MaxTenant    *uint32 `json:"max_tenant,omitempty"`
+	MaxPlugin          *uint32 `json:"max_plugin,omitempty"`
+	MaxOperation       *uint64 `json:"max_operation,omitempty"`
+	MaxTenant          *uint32 `json:"max_tenant,omitempty"`
+	MaxTenantPlugin    *uint32 `json:"max_tenant_plugin,omitempty"`
+	MaxTenantOperation *uint64 `json:"max_tenant_operation,omitempty"`
 }
 
 func (x SubscriptionType) MarshalJSON() ([]byte, error) {
