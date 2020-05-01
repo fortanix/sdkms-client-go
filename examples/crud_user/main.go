@@ -51,7 +51,7 @@ func main() {
 
 	// Create a new app
 	permissions := sdkms.AppPermissionsEncrypt | sdkms.AppPermissionsDecrypt
-	app, err := client.CreateApp(ctx, sdkms.GetAppParams{}, sdkms.AppRequest{
+	app, err := client.CreateApp(ctx, nil, sdkms.AppRequest{
 		Name:         someString(fmt.Sprintf("TestApp-%v", randomName(8))),
 		AddGroups:    &sdkms.AppGroups{groupID: &permissions},
 		DefaultGroup: &groupID,
@@ -62,7 +62,7 @@ func main() {
 	fmt.Printf("Created app: %v\n", appToString(app))
 
 	// List all apps
-	apps, err := client.ListApps(ctx, sdkms.ListAppsParams{
+	apps, err := client.ListApps(ctx, &sdkms.ListAppsParams{
 		GroupPermissions: true,
 	})
 	if err != nil {

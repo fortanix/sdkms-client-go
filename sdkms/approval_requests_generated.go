@@ -224,13 +224,15 @@ type ApproveRequest struct {
 }
 
 // Get all approval requests.
-func (c *Client) ListApprovalRequests(ctx context.Context, queryParameters ListApprovalRequestsParams) ([]ApprovalRequest, error) {
+func (c *Client) ListApprovalRequests(ctx context.Context, queryParameters *ListApprovalRequestsParams) ([]ApprovalRequest, error) {
 	u := "/sys/v1/approval_requests"
-	q, err := encodeURLParams(&queryParameters)
-	if err != nil {
-		return nil, err
+	if queryParameters != nil {
+		q, err := encodeURLParams(queryParameters)
+		if err != nil {
+			return nil, err
+		}
+		u = fmt.Sprintf("%v?%v", u, q)
 	}
-	u = fmt.Sprintf("%v?%v", u, q)
 	var r []ApprovalRequest
 	if err := c.fetch(ctx, http.MethodGet, u, nil, &r); err != nil {
 		return nil, err

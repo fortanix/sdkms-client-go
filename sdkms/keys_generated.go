@@ -215,13 +215,15 @@ func (c *Client) RequestApprovalToDeleteSobject(ctx context.Context, id string, 
 }
 
 // Get all security objects accessible to the currently authenticated entity (user or app).
-func (c *Client) ListSobjects(ctx context.Context, queryParameters ListSobjectsParams) ([]Sobject, error) {
+func (c *Client) ListSobjects(ctx context.Context, queryParameters *ListSobjectsParams) ([]Sobject, error) {
 	u := "/crypto/v1/keys"
-	q, err := encodeURLParams(&queryParameters)
-	if err != nil {
-		return nil, err
+	if queryParameters != nil {
+		q, err := encodeURLParams(queryParameters)
+		if err != nil {
+			return nil, err
+		}
+		u = fmt.Sprintf("%v?%v", u, q)
 	}
-	u = fmt.Sprintf("%v?%v", u, q)
 	var r []Sobject
 	if err := c.fetch(ctx, http.MethodGet, u, nil, &r); err != nil {
 		return nil, err
@@ -230,13 +232,15 @@ func (c *Client) ListSobjects(ctx context.Context, queryParameters ListSobjectsP
 }
 
 // Lookup a security object by its ID or name.
-func (c *Client) GetSobject(ctx context.Context, queryParameters GetSobjectParams, body SobjectDescriptor) (*Sobject, error) {
+func (c *Client) GetSobject(ctx context.Context, queryParameters *GetSobjectParams, body SobjectDescriptor) (*Sobject, error) {
 	u := "/crypto/v1/keys/info"
-	q, err := encodeURLParams(&queryParameters)
-	if err != nil {
-		return nil, err
+	if queryParameters != nil {
+		q, err := encodeURLParams(queryParameters)
+		if err != nil {
+			return nil, err
+		}
+		u = fmt.Sprintf("%v?%v", u, q)
 	}
-	u = fmt.Sprintf("%v?%v", u, q)
 	var r Sobject
 	if err := c.fetch(ctx, http.MethodPost, u, &body, &r); err != nil {
 		return nil, err

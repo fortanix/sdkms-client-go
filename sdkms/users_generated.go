@@ -222,13 +222,15 @@ func (c *Client) SignupUser(ctx context.Context, body SignupRequest) (*User, err
 }
 
 // Get all users.
-func (c *Client) ListUsers(ctx context.Context, queryParameters ListUsersParams) ([]User, error) {
+func (c *Client) ListUsers(ctx context.Context, queryParameters *ListUsersParams) ([]User, error) {
 	u := "/sys/v1/users"
-	q, err := encodeURLParams(&queryParameters)
-	if err != nil {
-		return nil, err
+	if queryParameters != nil {
+		q, err := encodeURLParams(queryParameters)
+		if err != nil {
+			return nil, err
+		}
+		u = fmt.Sprintf("%v?%v", u, q)
 	}
-	u = fmt.Sprintf("%v?%v", u, q)
 	var r []User
 	if err := c.fetch(ctx, http.MethodGet, u, nil, &r); err != nil {
 		return nil, err
