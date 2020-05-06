@@ -42,7 +42,7 @@ func main() {
 			ByName: &sdkms.SobjectSortByName{},
 		},
 	}
-	keys, err := client.ListSobjects(ctx, queryParams)
+	keys, err := client.ListSobjects(ctx, &queryParams)
 	if err != nil {
 		log.Fatal(err)
 	}

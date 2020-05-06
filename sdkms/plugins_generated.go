@@ -196,13 +196,15 @@ func (x PluginSort) urlEncode(v map[string][]string) error {
 }
 
 // Get all plugins.
-func (c *Client) ListPlugins(ctx context.Context, queryParameters ListPluginsParams) ([]Plugin, error) {
+func (c *Client) ListPlugins(ctx context.Context, queryParameters *ListPluginsParams) ([]Plugin, error) {
 	u := "/sys/v1/plugins"
-	q, err := encodeURLParams(&queryParameters)
-	if err != nil {
-		return nil, err
+	if queryParameters != nil {
+		q, err := encodeURLParams(queryParameters)
+		if err != nil {
+			return nil, err
+		}
+		u = fmt.Sprintf("%v?%v", u, q)
 	}
-	u = fmt.Sprintf("%v?%v", u, q)
 	var r []Plugin
 	if err := c.fetch(ctx, http.MethodGet, u, nil, &r); err != nil {
 		return nil, err

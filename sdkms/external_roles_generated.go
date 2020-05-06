@@ -53,13 +53,15 @@ func (x ListExternalRolesParams) urlEncode(v map[string][]string) error {
 }
 
 // Get all external roles.
-func (c *Client) ListExternalRoles(ctx context.Context, queryParameters ListExternalRolesParams) ([]ExternalRole, error) {
+func (c *Client) ListExternalRoles(ctx context.Context, queryParameters *ListExternalRolesParams) ([]ExternalRole, error) {
 	u := "/sys/v1/external_roles"
-	q, err := encodeURLParams(&queryParameters)
-	if err != nil {
-		return nil, err
+	if queryParameters != nil {
+		q, err := encodeURLParams(queryParameters)
+		if err != nil {
+			return nil, err
+		}
+		u = fmt.Sprintf("%v?%v", u, q)
 	}
-	u = fmt.Sprintf("%v?%v", u, q)
 	var r []ExternalRole
 	if err := c.fetch(ctx, http.MethodGet, u, nil, &r); err != nil {
 		return nil, err

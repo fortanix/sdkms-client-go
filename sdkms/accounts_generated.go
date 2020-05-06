@@ -595,13 +595,15 @@ type AuthConfig struct {
 }
 
 // Get all accounts accessible to the current user.
-func (c *Client) ListAccounts(ctx context.Context, queryParameters GetAccountParams) ([]Account, error) {
+func (c *Client) ListAccounts(ctx context.Context, queryParameters *GetAccountParams) ([]Account, error) {
 	u := "/sys/v1/accounts"
-	q, err := encodeURLParams(&queryParameters)
-	if err != nil {
-		return nil, err
+	if queryParameters != nil {
+		q, err := encodeURLParams(queryParameters)
+		if err != nil {
+			return nil, err
+		}
+		u = fmt.Sprintf("%v?%v", u, q)
 	}
-	u = fmt.Sprintf("%v?%v", u, q)
 	var r []Account
 	if err := c.fetch(ctx, http.MethodGet, u, nil, &r); err != nil {
 		return nil, err
@@ -610,14 +612,16 @@ func (c *Client) ListAccounts(ctx context.Context, queryParameters GetAccountPar
 }
 
 // Lookup an account by its ID.
-func (c *Client) GetAccount(ctx context.Context, id string, queryParameters GetAccountParams) (*Account, error) {
+func (c *Client) GetAccount(ctx context.Context, id string, queryParameters *GetAccountParams) (*Account, error) {
 	u := "/sys/v1/accounts/:id"
 	u = strings.NewReplacer(":id", id).Replace(u)
-	q, err := encodeURLParams(&queryParameters)
-	if err != nil {
-		return nil, err
+	if queryParameters != nil {
+		q, err := encodeURLParams(queryParameters)
+		if err != nil {
+			return nil, err
+		}
+		u = fmt.Sprintf("%v?%v", u, q)
 	}
-	u = fmt.Sprintf("%v?%v", u, q)
 	var r Account
 	if err := c.fetch(ctx, http.MethodGet, u, nil, &r); err != nil {
 		return nil, err
@@ -680,14 +684,16 @@ func (c *Client) DeleteAccount(ctx context.Context, id string) error {
 }
 
 // Get account usage information.
-func (c *Client) AccountUsage(ctx context.Context, id string, queryParameters CountParams) (*GetUsageResponse, error) {
+func (c *Client) AccountUsage(ctx context.Context, id string, queryParameters *CountParams) (*GetUsageResponse, error) {
 	u := "/sys/v1/accounts/:id/usage"
 	u = strings.NewReplacer(":id", id).Replace(u)
-	q, err := encodeURLParams(&queryParameters)
-	if err != nil {
-		return nil, err
+	if queryParameters != nil {
+		q, err := encodeURLParams(queryParameters)
+		if err != nil {
+			return nil, err
+		}
+		u = fmt.Sprintf("%v?%v", u, q)
 	}
-	u = fmt.Sprintf("%v?%v", u, q)
 	var r GetUsageResponse
 	if err := c.fetch(ctx, http.MethodGet, u, nil, &r); err != nil {
 		return nil, err

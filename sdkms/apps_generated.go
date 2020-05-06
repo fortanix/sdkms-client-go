@@ -331,13 +331,15 @@ func (x AppSort) urlEncode(v map[string][]string) error {
 }
 
 // Get all apps accessible to the current user.
-func (c *Client) ListApps(ctx context.Context, queryParameters ListAppsParams) ([]App, error) {
+func (c *Client) ListApps(ctx context.Context, queryParameters *ListAppsParams) ([]App, error) {
 	u := "/sys/v1/apps"
-	q, err := encodeURLParams(&queryParameters)
-	if err != nil {
-		return nil, err
+	if queryParameters != nil {
+		q, err := encodeURLParams(queryParameters)
+		if err != nil {
+			return nil, err
+		}
+		u = fmt.Sprintf("%v?%v", u, q)
 	}
-	u = fmt.Sprintf("%v?%v", u, q)
 	var r []App
 	if err := c.fetch(ctx, http.MethodGet, u, nil, &r); err != nil {
 		return nil, err
@@ -346,14 +348,16 @@ func (c *Client) ListApps(ctx context.Context, queryParameters ListAppsParams) (
 }
 
 // Lookup an app by its ID.
-func (c *Client) GetApp(ctx context.Context, id string, queryParameters GetAppParams) (*App, error) {
+func (c *Client) GetApp(ctx context.Context, id string, queryParameters *GetAppParams) (*App, error) {
 	u := "/sys/v1/apps/:id"
 	u = strings.NewReplacer(":id", id).Replace(u)
-	q, err := encodeURLParams(&queryParameters)
-	if err != nil {
-		return nil, err
+	if queryParameters != nil {
+		q, err := encodeURLParams(queryParameters)
+		if err != nil {
+			return nil, err
+		}
+		u = fmt.Sprintf("%v?%v", u, q)
 	}
-	u = fmt.Sprintf("%v?%v", u, q)
 	var r App
 	if err := c.fetch(ctx, http.MethodGet, u, nil, &r); err != nil {
 		return nil, err
@@ -362,13 +366,15 @@ func (c *Client) GetApp(ctx context.Context, id string, queryParameters GetAppPa
 }
 
 // Create a new app.
-func (c *Client) CreateApp(ctx context.Context, queryParameters GetAppParams, body AppRequest) (*App, error) {
+func (c *Client) CreateApp(ctx context.Context, queryParameters *GetAppParams, body AppRequest) (*App, error) {
 	u := "/sys/v1/apps"
-	q, err := encodeURLParams(&queryParameters)
-	if err != nil {
-		return nil, err
+	if queryParameters != nil {
+		q, err := encodeURLParams(queryParameters)
+		if err != nil {
+			return nil, err
+		}
+		u = fmt.Sprintf("%v?%v", u, q)
 	}
-	u = fmt.Sprintf("%v?%v", u, q)
 	var r App
 	if err := c.fetch(ctx, http.MethodPost, u, &body, &r); err != nil {
 		return nil, err
@@ -377,14 +383,16 @@ func (c *Client) CreateApp(ctx context.Context, queryParameters GetAppParams, bo
 }
 
 // Update an app.
-func (c *Client) UpdateApp(ctx context.Context, id string, queryParameters GetAppParams, body AppRequest) (*App, error) {
+func (c *Client) UpdateApp(ctx context.Context, id string, queryParameters *GetAppParams, body AppRequest) (*App, error) {
 	u := "/sys/v1/apps/:id"
 	u = strings.NewReplacer(":id", id).Replace(u)
-	q, err := encodeURLParams(&queryParameters)
-	if err != nil {
-		return nil, err
+	if queryParameters != nil {
+		q, err := encodeURLParams(queryParameters)
+		if err != nil {
+			return nil, err
+		}
+		u = fmt.Sprintf("%v?%v", u, q)
 	}
-	u = fmt.Sprintf("%v?%v", u, q)
 	var r App
 	if err := c.fetch(ctx, http.MethodPatch, u, &body, &r); err != nil {
 		return nil, err
@@ -404,14 +412,16 @@ func (c *Client) DeleteApp(ctx context.Context, id string) error {
 
 // Create a new API key for an app. An app may only have one valid API key at a time,
 // so performing this action will invalidate all old API keys.
-func (c *Client) ResetAppSecret(ctx context.Context, id string, queryParameters GetAppParams, body AppResetSecretRequest) (*App, error) {
+func (c *Client) ResetAppSecret(ctx context.Context, id string, queryParameters *GetAppParams, body AppResetSecretRequest) (*App, error) {
 	u := "/sys/v1/apps/:id/reset_secret"
 	u = strings.NewReplacer(":id", id).Replace(u)
-	q, err := encodeURLParams(&queryParameters)
-	if err != nil {
-		return nil, err
+	if queryParameters != nil {
+		q, err := encodeURLParams(queryParameters)
+		if err != nil {
+			return nil, err
+		}
+		u = fmt.Sprintf("%v?%v", u, q)
 	}
-	u = fmt.Sprintf("%v?%v", u, q)
 	var r App
 	if err := c.fetch(ctx, http.MethodPost, u, &body, &r); err != nil {
 		return nil, err
