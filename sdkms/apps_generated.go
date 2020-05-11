@@ -33,6 +33,7 @@ const (
 	AppPermissionsExport
 	AppPermissionsManage
 	AppPermissionsAgreekey
+	AppPermissionsMaskdecrypt
 )
 
 // MarshalJSON converts AppPermissions to an array of strings
@@ -74,6 +75,9 @@ func (x AppPermissions) MarshalJSON() ([]byte, error) {
 	if x&AppPermissionsAgreekey == AppPermissionsAgreekey {
 		s = append(s, "AGREEKEY")
 	}
+	if x&AppPermissionsMaskdecrypt == AppPermissionsMaskdecrypt {
+		s = append(s, "MASKDECRYPT")
+	}
 	return json.Marshal(s)
 }
 
@@ -110,6 +114,8 @@ func (x *AppPermissions) UnmarshalJSON(data []byte) error {
 			*x = *x | AppPermissionsManage
 		case "AGREEKEY":
 			*x = *x | AppPermissionsAgreekey
+		case "MASKDECRYPT":
+			*x = *x | AppPermissionsMaskdecrypt
 		}
 	}
 	return nil
@@ -176,10 +182,11 @@ type TrustAnchor struct {
 
 // App authentication mechanisms.
 type AppCredential struct {
-	Secret      *string
-	Certificate *Blob
-	TrustedCa   *TrustAnchor
-	SignedJwt   *AppCredentialSignedJwt
+	Secret               *string
+	Certificate          *Blob
+	TrustedCa            *TrustAnchor
+	GoogleServiceAccount *struct{}
+	SignedJwt            *AppCredentialSignedJwt
 }
 type AppCredentialSignedJwt struct {
 	ValidIssuers []string       `json:"valid_issuers"`
@@ -187,18 +194,20 @@ type AppCredentialSignedJwt struct {
 }
 
 func (x AppCredential) MarshalJSON() ([]byte, error) {
-	if err := checkEnumPointers("AppCredential", []bool{x.Secret != nil, x.Certificate != nil, x.TrustedCa != nil, x.SignedJwt != nil}); err != nil {
+	if err := checkEnumPointers("AppCredential", []bool{x.Secret != nil, x.Certificate != nil, x.TrustedCa != nil, x.GoogleServiceAccount != nil, x.SignedJwt != nil}); err != nil {
 		return nil, err
 	}
 	var obj struct {
-		Secret      *string                 `json:"secret,omitempty"`
-		Certificate *Blob                   `json:"certificate,omitempty"`
-		TrustedCa   *TrustAnchor            `json:"trustedca,omitempty"`
-		SignedJwt   *AppCredentialSignedJwt `json:"signedjwt,omitempty"`
+		Secret               *string                 `json:"secret,omitempty"`
+		Certificate          *Blob                   `json:"certificate,omitempty"`
+		TrustedCa            *TrustAnchor            `json:"trustedca,omitempty"`
+		GoogleServiceAccount *struct{}               `json:"googleserviceaccount,omitempty"`
+		SignedJwt            *AppCredentialSignedJwt `json:"signedjwt,omitempty"`
 	}
 	obj.Secret = x.Secret
 	obj.Certificate = x.Certificate
 	obj.TrustedCa = x.TrustedCa
+	obj.GoogleServiceAccount = x.GoogleServiceAccount
 	obj.SignedJwt = x.SignedJwt
 	return json.Marshal(obj)
 }
@@ -206,12 +215,14 @@ func (x *AppCredential) UnmarshalJSON(data []byte) error {
 	x.Secret = nil
 	x.Certificate = nil
 	x.TrustedCa = nil
+	x.GoogleServiceAccount = nil
 	x.SignedJwt = nil
 	var obj struct {
-		Secret      *string                 `json:"secret,omitempty"`
-		Certificate *Blob                   `json:"certificate,omitempty"`
-		TrustedCa   *TrustAnchor            `json:"trustedca,omitempty"`
-		SignedJwt   *AppCredentialSignedJwt `json:"signedjwt,omitempty"`
+		Secret               *string                 `json:"secret,omitempty"`
+		Certificate          *Blob                   `json:"certificate,omitempty"`
+		TrustedCa            *TrustAnchor            `json:"trustedca,omitempty"`
+		GoogleServiceAccount *struct{}               `json:"googleserviceaccount,omitempty"`
+		SignedJwt            *AppCredentialSignedJwt `json:"signedjwt,omitempty"`
 	}
 	if err := json.Unmarshal(data, &obj); err != nil {
 		return err
@@ -219,6 +230,7 @@ func (x *AppCredential) UnmarshalJSON(data []byte) error {
 	x.Secret = obj.Secret
 	x.Certificate = obj.Certificate
 	x.TrustedCa = obj.TrustedCa
+	x.GoogleServiceAccount = obj.GoogleServiceAccount
 	x.SignedJwt = obj.SignedJwt
 	return nil
 }
@@ -228,10 +240,11 @@ type AppAuthType string
 
 // List of supported AppAuthType values
 const (
-	AppAuthTypeSecret      AppAuthType = "Secret"
-	AppAuthTypeCertificate AppAuthType = "Certificate"
-	AppAuthTypeTrustedCa   AppAuthType = "TrustedCa"
-	AppAuthTypeSignedJwt   AppAuthType = "SignedJwt"
+	AppAuthTypeSecret               AppAuthType = "Secret"
+	AppAuthTypeCertificate          AppAuthType = "Certificate"
+	AppAuthTypeTrustedCa            AppAuthType = "TrustedCa"
+	AppAuthTypeGoogleServiceAccount AppAuthType = "GoogleServiceAccount"
+	AppAuthTypeSignedJwt            AppAuthType = "SignedJwt"
 )
 
 type App struct {
