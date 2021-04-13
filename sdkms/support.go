@@ -8,8 +8,10 @@ package sdkms
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"time"
+	"unicode/utf8"
 
 	"github.com/pkg/errors"
 )
@@ -26,6 +28,28 @@ type Time string
 // Std returns a time.Time value representing t
 func (t Time) Std() (time.Time, error) {
 	return time.Parse("20060102T150405Z0700", string(t))
+}
+
+// Char represents a single `rune` encoded as a JSON string
+type Char rune
+
+func (c Char) MarshalJSON() ([]byte, error) {
+	return json.Marshal(fmt.Sprintf("%c", c))
+}
+
+func (c *Char) UnmarshalJSON(data []byte) error {
+	var s string
+	err := json.Unmarshal(data, &s)
+	if err != nil {
+		return err
+	}
+	count := utf8.RuneCountInString(s)
+	if count > 1 {
+		return fmt.Errorf("expected a single character, found %v", count)
+	}
+	r, _ := utf8.DecodeRuneInString(s)
+	*c = Char(r)
+	return nil
 }
 
 // AppGroups contains a list of groups and optionally permissions granted to an app in each group.
