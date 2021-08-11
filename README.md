@@ -4,6 +4,11 @@ This repository contains a Go client library for
 [Fortanix](https://fortanix.com/)
 [Self Defending Key Management Service](https://fortanix.com/products/sdkms/).
 
+# Installing
+
+- Download the latest release bundle of the SDKMS GO SDK from [here](https://github.com/fortanix/sdkms-client-go/releases)
+- Unzip the SDK files to the project directory
+
 # Contributing
 
 We gratefully accept bug reports and contributions from the community.
