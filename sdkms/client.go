@@ -57,6 +57,13 @@ func (c *Client) fetchWithAuth(ctx context.Context, method, path string, body in
 	if err != nil {
 		return errors.Wrap(err, "could not make HTTP request")
 	}
+
+	if dst, ok := ctx.Value("ResponseHeader").(http.Header); ok && dst != nil {
+		for k, v := range resp.Header.Clone() {
+			dst[k] = v
+		}
+	}
+
 	return parseResponse(resp, response)
 }
 
