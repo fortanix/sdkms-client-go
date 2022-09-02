@@ -12,7 +12,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -89,7 +88,7 @@ func prepareRequestBody(body interface{}) (io.Reader, error) {
 
 func parseResponse(resp *http.Response, response interface{}) error {
 	defer resp.Body.Close()
-	buf, err := ioutil.ReadAll(resp.Body)
+	buf, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return errors.Wrap(err, "could not read response body")
 	}

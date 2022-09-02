@@ -201,11 +201,11 @@ func Test_TlsConfig(t *testing.T) {
 			want:  `{"ca":{"ca_set":"global_roots"},"mode":"required","validate_hostname":true}`,
 		},
 		{
-			input: TLSConfigPinned([]Blob{Blob{104, 101, 108, 108, 111}}, true),
+			input: TLSConfigPinned([]Blob{{104, 101, 108, 108, 111}}, true),
 			want:  `{"ca":{"pinned":["aGVsbG8="]},"mode":"required","validate_hostname":true}`,
 		},
 		{
-			input: TLSConfigPinned([]Blob{Blob{104, 101, 108, 108, 111}, Blob{119, 111, 114, 108, 100}}, false),
+			input: TLSConfigPinned([]Blob{{104, 101, 108, 108, 111}, {119, 111, 114, 108, 100}}, false),
 			want:  `{"ca":{"pinned":["aGVsbG8=","d29ybGQ="]},"mode":"required","validate_hostname":false}`,
 		},
 	}
