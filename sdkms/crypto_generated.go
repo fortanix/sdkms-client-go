@@ -180,6 +180,28 @@ type DecryptFinalResponse struct {
 	Plain Blob `json:"plain"`
 }
 
+type BatchDecryptRequestItem struct {
+	Kid     UUID           `json:"kid"`
+	Request DecryptRequest `json:"request"`
+}
+
+type BatchEncryptRequestItem struct {
+	Kid     UUID           `json:"kid"`
+	Request EncryptRequest `json:"request"`
+}
+
+type BatchEncryptResponseItem struct {
+	Status uint16           `json:"status"`
+	Body   *EncryptResponse `json:"body,omitempty"`
+	Error  *string          `json:"error,omitempty"`
+}
+
+type BatchDecryptResponseItem struct {
+	Status uint16           `json:"status"`
+	Body   *DecryptResponse `json:"body,omitempty"`
+	Error  *string          `json:"error,omitempty"`
+}
+
 // Request to compute the hash of arbitrary data.
 type DigestRequest struct {
 	Alg  DigestAlgorithm `json:"alg"`
@@ -630,10 +652,11 @@ func (c *Client) Verify(ctx context.Context, body VerifyRequest) (*VerifyRespons
 // must have the wrapkey operation enabled.
 //
 // The following wrapping operations are supported:
-//  * Symmetric keys, HMAC keys, opaque objects, and secret objects may be wrapped
-//    with symmetric or asymmetric keys.
-//  * Asymmetric keys may be wrapped with symmetric keys. Wrapping an asymmetric
-//    key with an asymmetric key is not supported.
+//   - Symmetric keys, HMAC keys, opaque objects, and secret objects may be wrapped
+//     with symmetric or asymmetric keys.
+//   - Asymmetric keys may be wrapped with symmetric keys. Wrapping an asymmetric
+//     key with an asymmetric key is not supported.
+//
 // When wrapping with an asymmetric key, the wrapped object size must fit as
 // plaintext for the wrapping key size and algorithm.
 func (c *Client) Wrap(ctx context.Context, body WrapKeyRequest) (*WrapKeyResponse, error) {
@@ -779,4 +802,31 @@ func (c *Client) CreateDigest(ctx context.Context, body DigestRequest) (*DigestR
 		return nil, err
 	}
 	return &r, nil
+}
+
+// Batch decrypt with one or more keys.
+//
+// The order of batch items in the response matches that of the request.
+// returned in the same order. An individual status code is returned
+// for each batch item.
+func (c *Client) BatchDecrypt(ctx context.Context, body []BatchDecryptRequestItem) ([]BatchDecryptResponseItem, error) {
+	u := "/crypto/v1/keys/batch/decrypt"
+	var r []BatchDecryptResponseItem
+	if err := c.fetch(ctx, http.MethodPost, u, &body, &r); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+// Batch encrypt with one or more keys.
+//
+// The order of batch items in the response matches that of the request.
+// An individual status code is returned for each batch item.
+func (c *Client) BatchEncrypt(ctx context.Context, body []BatchEncryptRequestItem) ([]BatchEncryptResponseItem, error) {
+	u := "/crypto/v1/keys/batch/encrypt"
+	var r []BatchEncryptResponseItem
+	if err := c.fetch(ctx, http.MethodPost, u, &body, &r); err != nil {
+		return nil, err
+	}
+	return r, nil
 }
