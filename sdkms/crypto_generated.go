@@ -219,33 +219,49 @@ type VerifyMacRequest struct {
 	Mac *Blob `json:"mac,omitempty"`
 }
 
+type DeriveKeyMechanismHkdf struct {
+	HashAlg *DigestAlgorithm `json:"hash_alg"`
+
+	Info string `json:"info,omitempty"`
+
+	Salt string `json:"salt,omitempty"`
+}
+
 // Encodes the mechanism to be used when deriving a new key from an existing key.
 // Currently, the only supported mechanism is encrypting data to derive the new key.
 // Other mechanisms may be added in the future.
 type DeriveKeyMechanism struct {
 	EncryptData *EncryptRequest
+	Hkdf        *DeriveKeyMechanismHkdf `json:"hkdf,omitempty"`
 }
 
 func (x DeriveKeyMechanism) MarshalJSON() ([]byte, error) {
-	if err := checkEnumPointers("DeriveKeyMechanism", []bool{x.EncryptData != nil}); err != nil {
+	if err := checkEnumPointers("DeriveKeyMechanism", []bool{x.EncryptData != nil, x.Hkdf != nil}); err != nil {
 		return nil, err
 	}
-	var obj struct {
-		EncryptData *EncryptRequest `json:"encrypt_data,omitempty"`
+	if x.Hkdf != nil {
+		return json.Marshal(x.Hkdf)
 	}
-	obj.EncryptData = x.EncryptData
-	return json.Marshal(obj)
+	if x.EncryptData != nil {
+		return json.Marshal(x.EncryptData)
+	}
+	panic("unreachable")
+
 }
 func (x *DeriveKeyMechanism) UnmarshalJSON(data []byte) error {
 	x.EncryptData = nil
-	var obj struct {
-		EncryptData *EncryptRequest `json:"encrypt_data,omitempty"`
+	x.Hkdf = nil
+	var hkdf DeriveKeyMechanismHkdf
+	if err := json.Unmarshal(data, &hkdf); err == nil {
+		x.Hkdf = &hkdf
+		return nil
 	}
-	if err := json.Unmarshal(data, &obj); err != nil {
-		return err
+	var encryptdata EncryptRequest
+	if err := json.Unmarshal(data, &encryptdata); err == nil {
+		x.EncryptData = &encryptdata
+		return nil
 	}
-	x.EncryptData = obj.EncryptData
-	return nil
+	return errors.Errorf("Not a valid Key Derivation mode")
 }
 
 // Request to derive a key.
@@ -630,10 +646,11 @@ func (c *Client) Verify(ctx context.Context, body VerifyRequest) (*VerifyRespons
 // must have the wrapkey operation enabled.
 //
 // The following wrapping operations are supported:
-//  * Symmetric keys, HMAC keys, opaque objects, and secret objects may be wrapped
-//    with symmetric or asymmetric keys.
-//  * Asymmetric keys may be wrapped with symmetric keys. Wrapping an asymmetric
-//    key with an asymmetric key is not supported.
+//   - Symmetric keys, HMAC keys, opaque objects, and secret objects may be wrapped
+//     with symmetric or asymmetric keys.
+//   - Asymmetric keys may be wrapped with symmetric keys. Wrapping an asymmetric
+//     key with an asymmetric key is not supported.
+//
 // When wrapping with an asymmetric key, the wrapped object size must fit as
 // plaintext for the wrapping key size and algorithm.
 func (c *Client) Wrap(ctx context.Context, body WrapKeyRequest) (*WrapKeyResponse, error) {
