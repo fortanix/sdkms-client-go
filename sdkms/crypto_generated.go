@@ -220,7 +220,7 @@ type VerifyMacRequest struct {
 }
 
 type DeriveKeyMechanismHkdf struct {
-	HashAlg *DigestAlgorithm `json:"hash_alg"`
+	HashAlg DigestAlgorithm `json:"hash_alg"`
 
 	Info string `json:"info,omitempty"`
 
@@ -231,7 +231,7 @@ type DeriveKeyMechanismHkdf struct {
 // Currently, the only supported mechanism is encrypting data to derive the new key.
 // Other mechanisms may be added in the future.
 type DeriveKeyMechanism struct {
-	EncryptData *EncryptRequest
+	EncryptData *EncryptRequest `json:"encrypt_data,omitempty"`
 	Hkdf        *DeriveKeyMechanismHkdf `json:"hkdf,omitempty"`
 }
 
@@ -239,13 +239,17 @@ func (x DeriveKeyMechanism) MarshalJSON() ([]byte, error) {
 	if err := checkEnumPointers("DeriveKeyMechanism", []bool{x.EncryptData != nil, x.Hkdf != nil}); err != nil {
 		return nil, err
 	}
-	if x.Hkdf != nil {
-		return json.Marshal(x.Hkdf)
+	var obj struct {
+		EncryptData *EncryptRequest `json:"encrypt_data,omitempty"`
+		Hkdf  *DeriveKeyMechanismHkdf `json:"hkdf,omitempty"`
 	}
 	if x.EncryptData != nil {
-		return json.Marshal(x.EncryptData)
+		obj.EncryptData = x.EncryptData
 	}
-	panic("unreachable")
+	if x.Hkdf != nil {
+		obj.Hkdf = x.Hkdf
+	}
+	return json.Marshal(obj)
 
 }
 func (x *DeriveKeyMechanism) UnmarshalJSON(data []byte) error {
