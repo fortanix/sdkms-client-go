@@ -265,7 +265,7 @@ func (x *DeriveKeyMechanism) UnmarshalJSON(data []byte) error {
 		x.EncryptData = &encryptdata
 		return nil
 	}
-	return errors.Errorf("Not a valid Key Derivation mode")
+	return errors.Errorf("Not a valid key derivation mechanism")
 }
 
 // Request to derive a key.
