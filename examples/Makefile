@@ -2,7 +2,7 @@
 EXAMPLES = approval_request \
 	   crud \
 	   crud_user \
-	   encrypt_decrypt \
+	   crypto_ops \
 	   get_user \
 	   invoke_plugin \
 	   plugin_approval_request \

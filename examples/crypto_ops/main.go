@@ -1,6 +1,6 @@
 // Encrypt/Decrypt example
 // This program demonstrates how to do basic cryptographic operations with the SDKMS Go SDK
-package crypto_ops
+package main
 
 import (
 	"context"

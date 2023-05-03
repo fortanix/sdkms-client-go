@@ -1,4 +1,4 @@
-package crypto_ops
+package main
 
 import (
 	"context"
@@ -34,7 +34,7 @@ func sample_encrypt_decrypt(client *sdkms.Client, objId string) {
 	decryptReq := sdkms.DecryptRequest{
 		Cipher: encryptResp.Cipher,
 		Iv:     encryptResp.Iv,
-		Key:    sdkms.SobjectByName(keyName),
+		Key:    &key,
 		Mode:   sdkms.CryptModeSymmetric(sdkms.CipherModeCbc),
 	}
 	decryptResp, err := client.Decrypt(ctx, decryptReq)

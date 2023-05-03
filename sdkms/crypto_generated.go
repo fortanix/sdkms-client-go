@@ -235,7 +235,7 @@ type DeriveKeyMechanism struct {
 	Hkdf        *DeriveKeyMechanismHkdf `json:"hkdf,omitempty"`
 }
 
-func (x DeriveKeyMechanism) MarshalJSON() ([]byte, error) {
+func (x *DeriveKeyMechanism) MarshalJSON() ([]byte, error) {
 	if err := checkEnumPointers("DeriveKeyMechanism", []bool{x.EncryptData != nil, x.Hkdf != nil}); err != nil {
 		return nil, err
 	}

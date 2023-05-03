@@ -1,4 +1,4 @@
-package crypto_ops
+package main
 
 import (
 	"context"
@@ -19,9 +19,9 @@ func sobjectToString(sobject *sdkms.Sobject) string {
 }
 
 func sample_derive_key(client *sdkms.Client, objId string) {
-	var derivedName string = "Derived RSA"
+	var derivedName string = "Derived-Key"
 	deriveKeyMec := sdkms.DeriveKeyMechanismHkdf{
-		HashAlg: sdkms.DigestAlgorithmSha256,
+		HashAlg: sdkms.DigestAlgorithmSha1,
 		Info:    "encryption",
 		Salt:    generateRandom(16),
 	}
