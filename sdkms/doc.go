@@ -8,7 +8,7 @@
 //
 // NOTE: This is work in progress.
 //
-// Conventions
+// # Conventions
 //
 // Optional fields are always pointer types and have json tag omitempty.
 package sdkms
