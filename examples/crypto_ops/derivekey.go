@@ -19,10 +19,10 @@ func sobjectToString(sobject *sdkms.Sobject) string {
 }
 
 func sample_derive_key(client *sdkms.Client, objId string) {
-	var derivedName string = "Derived-Key"
+	var derivedName string = fmt.Sprintf("Derived-Key-%v", generateRandom(8))
 	deriveKeyMec := sdkms.DeriveKeyMechanismHkdf{
 		HashAlg: sdkms.DigestAlgorithmSha1,
-		Info:    "encryption",
+		Info:    "derivation",
 		Salt:    generateRandom(16),
 	}
 	ctx := context.Background()
