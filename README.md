@@ -40,3 +40,9 @@ this project or the open source license(s) involved.
 
 This project is primarily distributed under the terms of the Mozilla Public License (MPL) 2.0, see [LICENSE](./LICENSE) for details.
 Examples are subject to the Apache License 2.0, see [examples/LICENSE](./examples/LICENSE) for details.
+
+## Following are the scenarios tested
+
+Deriving __AES Key[128, 192, 256]__ sizes from __Secret Key__ with HKDF mechanism using __[ DigestAlgorithmSha1, DigestAlgorithmSha224, DigestAlgorithmSha256, DigestAlgorithmSha384, DigestAlgorithmSha512]__ is working fine.
+
+Deriving __HMAC Key__ from __Secret Key__ with HKDF mechanism using __[ DigestAlgorithmSha1, DigestAlgorithmSha224, DigestAlgorithmSha256, DigestAlgorithmSha384, DigestAlgorithmSha512]__ is working fine.
