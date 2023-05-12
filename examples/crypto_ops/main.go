@@ -15,7 +15,7 @@ import (
 
 const (
 	myAPIEndpoint string = "https://sit.smartkey.io"
-	myAPIKey      string = "NzI0OGM3MjgtNDA2Yy00MDkxLTk1NWMtNjE5ZDYwMDY1NTFhOmpNZmU2LW9xWjlMdEVIQ0lLQTg2UnUxWHJ4dXVEWWw4MjRBQlFpRmpyR01OS3pwSDdTTEF6RUZfb25kZVk5enJOQkhhNi1ETTktaUlfTHlpc1FMZkpn"
+	myAPIKey      string = "....J4dXVEWWw4MjRBQlFpRmpyR01OS3pwSDdTTEF6RUZfb25kZVk5enJOQkh...."
 	keyName       string = "< >"
 )
 
