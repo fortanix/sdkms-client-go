@@ -21,8 +21,8 @@ func sobjectToString(sobject *sdkms.Sobject) string {
 func sample_derive_key(client *sdkms.Client, objId string) {
 	var derivedName string = "Derived-Key"
 	deriveKeyMec := sdkms.DeriveKeyMechanismHkdf{
-		HashAlg: sdkms.DigestAlgorithmSha1,
-		Info:    "encryption",
+		HashAlg: sdkms.DigestAlgorithmSha224,
+		Info:    "signing",
 		Salt:    generateRandom(16),
 	}
 	ctx := context.Background()
@@ -35,8 +35,8 @@ func sample_derive_key(client *sdkms.Client, objId string) {
 	}
 	deriveKeyReq := sdkms.DeriveKeyRequest{
 		Name:      &derivedName,
-		KeyType:   sdkms.ObjectTypeAes,
-		KeySize:   256,
+		KeyType:   sdkms.ObjectTypeAria,
+		KeySize:   128,
 		Key:       &key,
 		Mechanism: sdkms.DeriveKeyMechanism{Hkdf: &deriveKeyMec},
 	}

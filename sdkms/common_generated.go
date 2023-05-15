@@ -132,6 +132,8 @@ const (
 	ObjectTypeHmac        ObjectType = "HMAC"
 	ObjectTypeSecret      ObjectType = "SECRET"
 	ObjectTypeCertificate ObjectType = "CERTIFICATE"
+	ObjectTypeAria        ObjectType = "ARIA"
+	ObjectTypeSeed        ObjectType = "SEED"
 )
 
 // The origin of a security object - where it was created / generated.
@@ -233,6 +235,7 @@ const (
 	DigestAlgorithmRipemd160   DigestAlgorithm = "RIPEMD160"
 	DigestAlgorithmSsl3        DigestAlgorithm = "SSL3"
 	DigestAlgorithmSha1        DigestAlgorithm = "SHA1"
+	DigestAlgorithmSha224      DigestAlgorithm = "SHA224"
 	DigestAlgorithmSha256      DigestAlgorithm = "SHA256"
 	DigestAlgorithmSha384      DigestAlgorithm = "SHA384"
 	DigestAlgorithmSha512      DigestAlgorithm = "SHA512"

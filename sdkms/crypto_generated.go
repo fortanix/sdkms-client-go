@@ -231,7 +231,7 @@ type DeriveKeyMechanismHkdf struct {
 // Currently, the only supported mechanism is encrypting data to derive the new key.
 // Other mechanisms may be added in the future.
 type DeriveKeyMechanism struct {
-	EncryptData *EncryptRequest `json:"encrypt_data,omitempty"`
+	EncryptData *EncryptRequest         `json:"encrypt_data,omitempty"`
 	Hkdf        *DeriveKeyMechanismHkdf `json:"hkdf,omitempty"`
 }
 
@@ -240,8 +240,8 @@ func (x *DeriveKeyMechanism) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	var obj struct {
-		EncryptData *EncryptRequest `json:"encrypt_data,omitempty"`
-		Hkdf  *DeriveKeyMechanismHkdf `json:"hkdf,omitempty"`
+		EncryptData *EncryptRequest         `json:"encrypt_data,omitempty"`
+		Hkdf        *DeriveKeyMechanismHkdf `json:"hkdf,omitempty"`
 	}
 	if x.EncryptData != nil {
 		obj.EncryptData = x.EncryptData

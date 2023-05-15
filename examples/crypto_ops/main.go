@@ -14,9 +14,9 @@ import (
 )
 
 const (
-	myAPIEndpoint string = "https://sdkms.fortanix.com"
-	myAPIKey string = "N2MwYThlYjgtMGZkNS00OWIxLWFkOWUt..."
-	keyName  string = "AES Key"
+	myAPIEndpoint string = "https://sit.smartkey.io"
+	myAPIKey      string = "....J4dXVEWWw4MjRBQlFpRmpyR01OS3pwSDdTTEF6RUZfb25kZVk5enJOQkh...."
+	keyName       string = "< >"
 )
 
 func generateRandom(length int) string {
@@ -35,20 +35,23 @@ func main() {
 		Endpoint:   myAPIEndpoint,
 	}
 	ctx := context.Background()
-
+	KeyVal := []byte(generateRandom(32))
 	sobjectReq := sdkms.SobjectRequest{
 		Name:    someString(fmt.Sprintf("TestKey-%v", generateRandom(8))),
-		ObjType: someObjectType(sdkms.ObjectTypeAes),
+		ObjType: someObjectType(sdkms.ObjectTypeSecret),
 		KeySize: someUInt32(uint32(256)),
-		KeyOps:  someKeyOperations(sdkms.KeyOperationsEncrypt | sdkms.KeyOperationsDecrypt | sdkms.KeyOperationsAppmanageable | sdkms.KeyOperationsDerivekey),
+		KeyOps:  someKeyOperations(sdkms.KeyOperationsExport | sdkms.KeyOperationsAppmanageable | sdkms.KeyOperationsDerivekey),
+		Value:   &KeyVal,
 	}
-	sobjectResp, err := client.CreateSobject(ctx, sobjectReq)
+	sobjectResp, err := client.ImportSobject(ctx, sobjectReq)
 	if err != nil {
-		log.Fatalf("!!Error creating Sobject %v: ", err)
+		log.Fatalf("!!! Error importing Sobject %v: ", err)
 	}
+	log.Printf("%v sobject imported successfully", sdkms.ObjectTypeSecret)
+	// ---- Use this function to run encrypt_decrypt example case ----
+	// sample_encrypt_decrypt(&client, *sobjectResp.Kid)
 
-	sample_encrypt_decrypt(&client, *sobjectResp.Kid)
-	
+	// ---- Use this function to run derivation example case ----
 	sample_derive_key(&client, *sobjectResp.Kid)
 }
 
