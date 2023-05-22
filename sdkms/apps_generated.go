@@ -185,9 +185,37 @@ type AppCredential struct {
 	Secret               *string
 	Certificate          *Blob
 	TrustedCa            *TrustAnchor
-	GoogleServiceAccount *struct{}
+	GoogleServiceAccount *AppCredentialGoogleServiceAccount
 	SignedJwt            *AppCredentialSignedJwt
 }
+
+// Key access justification reason.
+type KeyAccessJustification string
+
+// List of supported key access justifications.
+const (
+	KeyAccessJustificationCustomerInitiatedSupport               KeyAccessJustification = "CUSTOMER_INITIATED_SUPPORT"
+	KeyAccessJustificationCustomerInitiatedAccess                KeyAccessJustification = "CUSTOMER_INITIATED_ACCESS"
+	KeyAccessJustificationGoogleInitiatedService                 KeyAccessJustification = "GOOGLE_INITIATED_SERVICE"
+	KeyAccessJustificationGoogleInitiatedReview                  KeyAccessJustification = "GOOGLE_INITIATED_REVIEW"
+	KeyAccessJustificationGoogleInitiatedSystemOperation         KeyAccessJustification = "GOOGLE_INITIATED_SYSTEM_OPERATION"
+	KeyAccessJustificationThirdPartyDataRequest                  KeyAccessJustification = "THIRD_PARTY_DATA_REQUEST"
+	KeyAccessJustificationReasonUnspecified                      KeyAccessJustification = "REASON_UNSPECIFIED"
+	KeyAccessJustificationReasonNotExpected                      KeyAccessJustification = "REASON_NOT_EXPECTED"
+	KeyAccessJustificationModifiedCustomerInitiatedAccess        KeyAccessJustification = "MODIFIED_CUSTOMER_INITIATED_ACCESS"
+	KeyAccessJustificationModifiedGoogleInitiatedSystemOperation KeyAccessJustification = "MODIFIED_GOOGLE_INITIATED_SYSTEM_OPERATION"
+	KeyAccessJustificationGoogleResponseToProductionAlert        KeyAccessJustification = "GOOGLE_RESPONSE_TO_PRODUCTION_ALERT"
+)
+
+type AccessReasonPolicy struct {
+	Allow              []KeyAccessJustification `json:"allow"`
+	AllowMissingReason bool                     `json:"allow_missing_reason"`
+}
+
+type AppCredentialGoogleServiceAccount struct {
+	Policy *AccessReasonPolicy `json:"access_reason_policy"`
+}
+
 type AppCredentialSignedJwt struct {
 	ValidIssuers []string       `json:"valid_issuers"`
 	SigningKeys  JwtSigningKeys `json:"signing_keys"`
@@ -198,11 +226,11 @@ func (x AppCredential) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	var obj struct {
-		Secret               *string                 `json:"secret,omitempty"`
-		Certificate          *Blob                   `json:"certificate,omitempty"`
-		TrustedCa            *TrustAnchor            `json:"trustedca,omitempty"`
-		GoogleServiceAccount *struct{}               `json:"googleserviceaccount,omitempty"`
-		SignedJwt            *AppCredentialSignedJwt `json:"signedjwt,omitempty"`
+		Secret               *string                            `json:"secret,omitempty"`
+		Certificate          *Blob                              `json:"certificate,omitempty"`
+		TrustedCa            *TrustAnchor                       `json:"trustedca,omitempty"`
+		GoogleServiceAccount *AppCredentialGoogleServiceAccount `json:"googleserviceaccount,omitempty"`
+		SignedJwt            *AppCredentialSignedJwt            `json:"signedjwt,omitempty"`
 	}
 	obj.Secret = x.Secret
 	obj.Certificate = x.Certificate
@@ -218,11 +246,11 @@ func (x *AppCredential) UnmarshalJSON(data []byte) error {
 	x.GoogleServiceAccount = nil
 	x.SignedJwt = nil
 	var obj struct {
-		Secret               *string                 `json:"secret,omitempty"`
-		Certificate          *Blob                   `json:"certificate,omitempty"`
-		TrustedCa            *TrustAnchor            `json:"trustedca,omitempty"`
-		GoogleServiceAccount *struct{}               `json:"googleserviceaccount,omitempty"`
-		SignedJwt            *AppCredentialSignedJwt `json:"signedjwt,omitempty"`
+		Secret               *string                            `json:"secret,omitempty"`
+		Certificate          *Blob                              `json:"certificate,omitempty"`
+		TrustedCa            *TrustAnchor                       `json:"trustedca,omitempty"`
+		GoogleServiceAccount *AppCredentialGoogleServiceAccount `json:"googleserviceaccount,omitempty"`
+		SignedJwt            *AppCredentialSignedJwt            `json:"signedjwt,omitempty"`
 	}
 	if err := json.Unmarshal(data, &obj); err != nil {
 		return err
