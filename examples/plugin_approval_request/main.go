@@ -3,14 +3,14 @@
 // This program demonstrates how to request approval to invoke an SDKMS plugin.
 // The Lua code for the plugin is listed below:
 //
-// function check(input)
-//   key = assert(Sobject { name = "very important key" })
-//   require_approval_for(key)
-// end
+//	function check(input)
+//	   key = assert(Sobject { name = "very important key" })
+//	   require_approval_for(key)
+//	end
 //
-// function run(input)
-//   return key:sign(input)
-// end
+//	function run(input)
+//	   return key:sign(input)
+//	end
 package main
 
 import (
