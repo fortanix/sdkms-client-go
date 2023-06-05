@@ -3,9 +3,9 @@
 // This program demonstrates how to invoke an SDKMS plugin.
 // The Lua code for the plugin is listed below:
 //
-// function run(input)
-//   return { Sum = input.X + input.Y }
-// end
+//	function run(input)
+//	   return { Sum = input.X + input.Y }
+//	end
 package main
 
 import (
