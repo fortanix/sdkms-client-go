@@ -19,13 +19,13 @@ const (
 	keyName       string = "< >"
 )
 
-func generateRandom(length int) string {
+func generateRandom(length int) []byte {
 	rand.Seed(time.Now().Unix())
 	ran_str := make([]byte, length)
 	for i := 0; i < length; i++ {
 		ran_str[i] = byte(65 + rand.Intn(25))
 	}
-	return string(ran_str)
+	return ran_str
 }
 
 func main() {
@@ -35,7 +35,7 @@ func main() {
 		Endpoint:   myAPIEndpoint,
 	}
 	ctx := context.Background()
-	KeyVal := []byte(generateRandom(32))
+	KeyVal := generateRandom(32)
 	sobjectReq := sdkms.SobjectRequest{
 		Name:    someString(fmt.Sprintf("TestKey-%v", generateRandom(8))),
 		ObjType: someObjectType(sdkms.ObjectTypeSecret),
@@ -57,6 +57,7 @@ func main() {
 
 func someString(val string) *string { return &val }
 func someUInt32(val uint32) *uint32 { return &val }
+func someBytes(val []byte) *[]byte  { return &val }
 
 func someObjectType(val sdkms.ObjectType) *sdkms.ObjectType          { return &val }
 func someKeyOperations(val sdkms.KeyOperations) *sdkms.KeyOperations { return &val }

@@ -9,8 +9,8 @@ branches:
 language: go
 dist: xenial
 go:
-  - 1.11.x
-  - 1.12.x
+  - 1.18.x
+  - 1.19.x
   - stable
 script:
   - ./.travis.gofmt.sh

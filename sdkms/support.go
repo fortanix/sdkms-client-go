@@ -7,6 +7,7 @@
 package sdkms
 
 import (
+	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -310,3 +311,108 @@ const (
 )
 
 func someString(val string) *string { return &val }
+
+type HyperHttpMthod string
+
+// Common HTTP methods.
+//
+// Unless otherwise noted, these are defined in RFC 7231 section 4.3.
+const (
+	MethodGet     HyperHttpMthod = "GET"
+	MethodHead    HyperHttpMthod = "HEAD"
+	MethodPost    HyperHttpMthod = "POST"
+	MethodPut     HyperHttpMthod = "PUT"
+	MethodPatch   HyperHttpMthod = "PATCH" // RFC 5789
+	MethodDelete  HyperHttpMthod = "DELETE"
+	MethodConnect HyperHttpMthod = "CONNECT"
+	MethodOptions HyperHttpMthod = "OPTIONS"
+	MethodTrace   HyperHttpMthod = "TRACE"
+)
+
+type PublicKeyCredentialEntityForRp struct {
+	// Name of the entity
+	Name string `json:"name"`
+	// <https://www.w3.org/TR/webauthn-2/#dictionary-rp-credential-params>
+	Entity *PublicKeyCredentialRpEntity `json:"entity"`
+}
+
+type PublicKeyCredentialAuthenticatorAssertionResponse struct {
+	// Identifier of Credential
+	Id string `json:"id"`
+	// Type of credential
+	Type     *PublicKeyCredentialType        `json:"type"`
+	Response *AuthenticatorAssertionResponse `json:"response"`
+	// This field contains client extension output entries produced by the extension’s client extension processing.
+	ExtensionResults *AuthenticationExtensionsClientOutputs `json:"get_client_extension_results"`
+}
+
+type PublicKeyCredentialEntityForUser struct {
+	//
+	Name string `json:"name"`
+	//
+	Entity PublicKeyCredentialUserEntity `json:"entity"`
+}
+
+func someBlob(val []byte) *[]byte { return &val }
+
+type Removable[T any] struct {
+	value *T
+}
+
+func (r *Removable[T]) RemoveVal() Removable[T] {
+	return Removable[T]{value: nil}
+}
+
+func (r *Removable[T]) BuildStruct(value T) Removable[T] {
+	return Removable[T]{value: &value}
+}
+
+func (r Removable[T]) Get() *T {
+	return r.value
+}
+
+func (r *Removable[T]) MarshalJSON() ([]byte, error) {
+	if r.value == nil {
+		return json.Marshal("remove")
+	}
+	return json.Marshal(r.value)
+}
+
+func (r *Removable[T]) UnmarshalJSON(data []byte) error {
+	var maybeRemove string
+	if err := json.Unmarshal(data, &maybeRemove); err == nil {
+		if maybeRemove == "remove" {
+			r.value = nil
+			return nil
+		} else {
+			t := *new(T)
+			return errors.Errorf("invalid value for Removable[%T]: expected \"remove\" or %T", t, t)
+		}
+	}
+	return json.Unmarshal(data, &r.value)
+}
+
+type Base64urlSafe []byte
+
+func (x Base64urlSafe) MarshalJSON() ([]byte, error) {
+
+	enc := make([]byte, len(x))
+	b64.URLEncoding.Encode(enc, x)
+	return json.Marshal(&enc)
+}
+
+func (x Base64urlSafe) UnmarshalJSON(data []byte) error {
+	var raw string
+	err := json.Unmarshal(data, &raw)
+	if err != nil {
+		return err
+	}
+	var sDec []byte
+	var decErr error
+	if decErr != nil {
+		return decErr
+	}
+	sDec, decErr = b64.URLEncoding.DecodeString(raw)
+	x = sDec
+	return nil
+}
