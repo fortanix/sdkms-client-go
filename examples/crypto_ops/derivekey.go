@@ -22,8 +22,8 @@ func sample_derive_key(client *sdkms.Client, objId string) {
 	var derivedName string = "Derived-Key"
 	deriveKeyMec := sdkms.DeriveKeyMechanismHkdf{
 		HashAlg: sdkms.DigestAlgorithmSha224,
-		Info:    "signing",
-		Salt:    generateRandom(16),
+		Info:    someBytes([]byte("signing")),
+		Salt:    someBytes(generateRandom(16)),
 	}
 	ctx := context.Background()
 	var key sdkms.SobjectDescriptor

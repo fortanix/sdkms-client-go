@@ -38,7 +38,7 @@ func main() {
 
 	// List all sobjects
 	queryParams := sdkms.ListSobjectsParams{
-		Sort: sdkms.SobjectSort{
+		Sort: &sdkms.SobjectSort{
 			ByName: &sdkms.SobjectSortByName{},
 		},
 	}
@@ -46,8 +46,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("\n\nListing all sobjects (%v):\n", len(keys))
-	for _, key := range keys {
+	fmt.Printf("\n\nListing all sobjects (%v):\n", len(keys.Items))
+	for _, key := range keys.Items {
 		fmt.Printf("  %v\n", sobjectToString(&key))
 	}
 

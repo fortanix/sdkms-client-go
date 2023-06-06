@@ -63,7 +63,7 @@ func main() {
 
 	// List all apps
 	apps, err := client.ListApps(ctx, &sdkms.ListAppsParams{
-		GroupPermissions: true,
+		GroupPermissions: someBoolean(true),
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -105,3 +105,4 @@ func randomName(size uint) string {
 }
 
 func someString(val string) *string { return &val }
+func someBoolean(val bool) *bool    { return &val }
