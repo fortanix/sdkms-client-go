@@ -23,7 +23,7 @@ import (
 // <https://www.w3.org/TR/webauthn-2/#iface-authenticatorattestationresponse>
 type AuthenticatorAttestationResponse struct {
 	// Base64url of [crate::fido2::models::CollectedClientData] in JSON form.
-	ClientDataJson Base64urlSafe `json:"clientDataJSON"`
+	ClientDataJson Base64UrlSafe `json:"clientDataJSON"`
 	// Values obtained from `AuthenticatorAttestationResponse.getTransports()`.
 	// Webauthn spec recommends RP to store it and user them along with
 	// `allowCredentials` while authentication ceremony.
@@ -36,7 +36,7 @@ type AuthenticatorAttestationResponse struct {
 	// <https://www.w3.org/TR/webauthn-2/#sctn-defined-attestation-formats>
 	//
 	// Currently, only U2F is supported, others will be rejected.
-	AttestationObject string `json:"attestationObject"`
+	AttestationObject Base64UrlSafe `json:"attestationObject"`
 }
 
 type ConfirmEmailRequest struct {
@@ -60,7 +60,7 @@ type FidoAddDeviceRequest struct {
 	Name string `json:"name"`
 	// Result of calling `navigator.credentials.create()` with the
 	// data obtained from `new_challenge` API.
-	AttestationResult AuthenticatorAttestationResponse `json:"attestationResult"`
+	AttestationResult PublicKeyCredentialAuthenticatorAttestationResponse `json:"attestationResult"`
 }
 
 // Initiate password reset sequence.
@@ -131,6 +131,8 @@ type MfaDelDeviceRequest struct {
 type MfaDevice struct {
 	// Name given to the FIDO device.
 	Name string `json:"name"`
+	// Origin of the FIDO device.
+	Origin *string `json:"origin,omitempty"`
 }
 
 // Request to rename a FIDO device.

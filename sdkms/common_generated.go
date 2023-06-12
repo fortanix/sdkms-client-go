@@ -478,10 +478,10 @@ const (
 )
 
 type ApiPath struct {
-	APIPath string         `json:"api_path"`
-	Method  HyperHttpMthod `json:"method"`
-	Context TepKeyContext  `json:"context"`
-	KeyPath string         `json:"key_path"`
+	APIPath string          `json:"api_path"`
+	Method  HyperHttpMethod `json:"method"`
+	Context TepKeyContext   `json:"context"`
+	KeyPath string          `json:"key_path"`
 }
 
 // Operations allowed to be performed by an app.
@@ -670,7 +670,7 @@ type AuthConfigLdap struct {
 //
 // https://www.w3.org/TR/webauthn-2/#dictdef-authenticationextensionsclientinputs
 type AuthenticationExtensionsClientInputs struct {
-	// This extension exludes authenticators during registration
+	// This extension excludes authenticators during registration
 	// based on legacy u2f key handles specified in "excludeCredentials".
 	// If that key handle was created with that device, it is excluded.
 	//
@@ -696,6 +696,21 @@ type AuthenticationExtensionsClientOutputs struct {
 	// Response of `appid` extension.
 	// See [AuthenticationExtensionsClientInputs::appid].
 	Appid *bool `json:"appid,omitempty"`
+}
+
+// <https://www.w3.org/TR/webauthn-2/#iface-authenticatorassertionresponse>
+type AuthenticatorAssertionResponse struct {
+	// Base64url of client_data in JSON format.
+	ClientDataJson Base64UrlSafe `json:"clientDataJSON"`
+	// Data returned by authenticator.
+	// <https://www.w3.org/TR/webauthn-2/#sctn-authenticator-data>
+	AuthenticatorData Base64UrlSafe `json:"authenticatorData"`
+	// Raw signature returned by authenticator.
+	// <https://www.w3.org/TR/webauthn-2/#sctn-op-get-assertion>
+	Signature Base64UrlSafe `json:"signature"`
+	// Corresponds to [PublicKeyCredentialUserEntity::id] sent during
+	// credential creation.
+	UserHandle *Base64UrlSafe `json:"userHandle,omitempty"`
 }
 
 // <https://www.w3.org/TR/webauthn-2/#enumdef-authenticatorattachment>
@@ -3516,21 +3531,6 @@ func (x *Principal) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// <https://www.w3.org/TR/webauthn-2/#iface-authenticatorassertionresponse>
-type AuthenticatorAssertionResponse struct {
-	// Base64url of client_data in JSON format.
-	ClientDataJson Base64urlSafe `json:"clientDataJSON"`
-	// Data returned by authenticator.
-	// <https://www.w3.org/TR/webauthn-2/#sctn-authenticator-data>
-	AuthenticatorData Base64urlSafe `json:"authenticatorData"`
-	// Raw signature returned by authenticator.
-	// <https://www.w3.org/TR/webauthn-2/#sctn-op-get-assertion>
-	Signature Base64urlSafe `json:"signature"`
-	// Corresponds to [PublicKeyCredentialUserEntity::id] sent during
-	// credential creation.
-	UserHandle Base64urlSafe `json:"userHandle,omitempty"`
-}
-
 // <https://www.w3.org/TR/webauthn-2/#dictionary-makecredentialoptions>
 type PublicKeyCredentialCreationOptions struct {
 	// Additional relying party's attributes. See type level
@@ -3541,7 +3541,7 @@ type PublicKeyCredentialCreationOptions struct {
 	User PublicKeyCredentialEntityForUser `json:"user"`
 	// A random base64url encoded string. This can be min 16 bytes
 	// and max 64 bytes.
-	Challenge string `json:"challenge"`
+	Challenge Base64UrlSafe `json:"challenge"`
 	// This member contains information about the desired properties of the
 	// credential to be created. The sequence is ordered from most preferred
 	// to least preferred.
@@ -3580,17 +3580,11 @@ type PublicKeyCredentialDescriptor struct {
 	Type PublicKeyCredentialType `json:"type"`
 	// Credential ID of the public key credential the
 	// caller is referring to.
-	ID Base64urlSafe `json:"id"`
+	ID Base64UrlSafe `json:"id"`
 	// Hints by relying party on what transport client should
 	// use to communicate with authenticator.
 	Transports *[]AuthenticatorTransport `json:"transports,omitempty"`
 }
-
-type COSEAlgorithmIdentifier string
-
-const (
-	COSEAlgorithmEs256 COSEAlgorithmIdentifier = "Es256"
-)
 
 // https://www.w3.org/TR/webauthn-2/#dictionary-credential-params
 type PublicKeyCredentialParameters struct {
@@ -3605,7 +3599,7 @@ type PublicKeyCredentialParameters struct {
 type PublicKeyCredentialRequestOptions struct {
 	// This member contains the base64url encoding of the challenge
 	// provided by the Relying Party
-	Challenge Base64urlSafe `json:"challenge"`
+	Challenge Base64UrlSafe `json:"challenge"`
 	// The time for which response from the authenticator
 	// would be awaited. This should only be a hint as per the spec.
 	// This is in milliseconds.
@@ -3656,7 +3650,7 @@ type PublicKeyCredentialUserEntity struct {
 	// This is uuid of the user in DSM. But here, it is
 	// in base64url format as required by fido server conformance
 	// spec.
-	ID Base64urlSafe `json:"id"`
+	ID Base64UrlSafe `json:"id"`
 	// Human friendly name intended only for display.
 	DisplayName string `json:"displayName"`
 }

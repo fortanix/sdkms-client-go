@@ -10,10 +10,14 @@ import (
 	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/url"
+	"strconv"
+	"strings"
 	"time"
 	"unicode/utf8"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 )
 
@@ -312,21 +316,27 @@ const (
 
 func someString(val string) *string { return &val }
 
-type HyperHttpMthod string
+type HyperHttpMethod string
 
 // Common HTTP methods.
 //
 // Unless otherwise noted, these are defined in RFC 7231 section 4.3.
 const (
-	MethodGet     HyperHttpMthod = "GET"
-	MethodHead    HyperHttpMthod = "HEAD"
-	MethodPost    HyperHttpMthod = "POST"
-	MethodPut     HyperHttpMthod = "PUT"
-	MethodPatch   HyperHttpMthod = "PATCH" // RFC 5789
-	MethodDelete  HyperHttpMthod = "DELETE"
-	MethodConnect HyperHttpMthod = "CONNECT"
-	MethodOptions HyperHttpMthod = "OPTIONS"
-	MethodTrace   HyperHttpMthod = "TRACE"
+	MethodGet     HyperHttpMethod = "GET"
+	MethodHead    HyperHttpMethod = "HEAD"
+	MethodPost    HyperHttpMethod = "POST"
+	MethodPut     HyperHttpMethod = "PUT"
+	MethodPatch   HyperHttpMethod = "PATCH" // RFC 5789
+	MethodDelete  HyperHttpMethod = "DELETE"
+	MethodConnect HyperHttpMethod = "CONNECT"
+	MethodOptions HyperHttpMethod = "OPTIONS"
+	MethodTrace   HyperHttpMethod = "TRACE"
+)
+
+type COSEAlgorithmIdentifier int16
+
+const (
+	Es256 COSEAlgorithmIdentifier = -7
 )
 
 type PublicKeyCredentialEntityForRp struct {
@@ -392,16 +402,16 @@ func (r *Removable[T]) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, &r.value)
 }
 
-type Base64urlSafe []byte
+type Base64UrlSafe []byte
 
-func (x Base64urlSafe) MarshalJSON() ([]byte, error) {
+func (x Base64UrlSafe) MarshalJSON() ([]byte, error) {
 
 	enc := make([]byte, len(x))
 	b64.URLEncoding.Encode(enc, x)
 	return json.Marshal(&enc)
 }
 
-func (x Base64urlSafe) UnmarshalJSON(data []byte) error {
+func (x Base64UrlSafe) UnmarshalJSON(data []byte) error {
 	var raw string
 	err := json.Unmarshal(data, &raw)
 	if err != nil {
@@ -414,5 +424,116 @@ func (x Base64urlSafe) UnmarshalJSON(data []byte) error {
 	}
 	sDec, decErr = b64.URLEncoding.DecodeString(raw)
 	x = sDec
+	return nil
+}
+
+type IpAddr struct {
+	Address net.IP
+}
+
+func (x *IpAddr) MarshalJSON() ([]byte, error) {
+	return x.Address.MarshalText()
+}
+
+func (x *IpAddr) UnmarshalJSON(data []byte) error {
+	err := x.Address.UnmarshalText(data)
+	return err
+}
+
+type Duration struct {
+	Secs  uint64 `json:"secs,omitempty"`
+	Nanos uint32 `json:"nanos,omitempty"` // Always 0 <= nanos < NANOS_PER_SEC
+}
+
+type PluginVersion struct {
+	Major uint64
+	Minor uint64
+}
+
+func (x *PluginVersion) MarshalJSON() ([]byte, error) {
+	var ver string
+	ver = fmt.Sprintf("%v.%v", x.Major, x.Minor)
+	return json.Marshal(&ver)
+}
+
+func (x *PluginVersion) UnmarshalJSON(data []byte) error {
+	var obj string
+	err := json.Unmarshal(data, &obj)
+	if err != nil {
+		return err
+	}
+	ver := strings.Split(obj, ".")
+	var convErr error
+	maj, convErr := strconv.ParseUint(ver[0], 10, 32)
+	if convErr != nil {
+		return convErr
+	}
+	min, convErr := strconv.ParseUint(ver[1], 10, 32)
+	if convErr != nil {
+		return convErr
+	}
+	x.Major = maj
+	x.Minor = min
+	return nil
+}
+
+type PublicKeyCredentialAuthenticatorAttestationResponse struct {
+	Id               Base64UrlSafe                         `json:"id,omitempty"`
+	Type             PublicKeyCredentialType               `json:"type,omitempty"`
+	Response         AuthenticatorAssertionResponse        `json:"response,omitempty"`
+	ExtensionResults AuthenticationExtensionsClientOutputs `json:"get_client_extension_results,omitempty"`
+}
+
+type AuditLogTime time.Time
+
+func (t AuditLogTime) MarshalJSON() ([]byte, error) {
+	strDate := time.Time(t).Format(time.RFC3339)
+	return json.Marshal(strDate)
+}
+
+func (t *AuditLogTime) UnmarshalJSON(data []byte) (err error) {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	q, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		return fmt.Errorf("Unable to parse the AuditLogTime: %v", err)
+	}
+	*t = AuditLogTime(q)
+	return nil
+}
+
+func (r *ListSobjectsResponse) UnmarshalJSON(data []byte) error {
+	// Define an intermediate struct to decode the items array.
+	type response struct {
+		Md    Metadata                 `json:"metadata,omitempty"`
+		Items []map[string]interface{} `json:"items,omitempty"`
+	}
+
+	// Decode the JSON into the intermediate struct.
+	var resp response
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return err
+	}
+
+	// Convert the maps to Sobjects and assign them to the Items field.
+	r.Md = resp.Md
+	r.Items = make([]Sobject, len(resp.Items))
+	for i, item := range resp.Items {
+		var sobj Sobject
+		config := &mapstructure.DecoderConfig{
+			ErrorUnused: true,
+			Result:      &sobj,
+		}
+		decoder, err := mapstructure.NewDecoder(config)
+		if err != nil {
+			return err
+		}
+		if err := decoder.Decode(item); err != nil {
+			return err
+		}
+		r.Items[i] = sobj
+	}
 	return nil
 }

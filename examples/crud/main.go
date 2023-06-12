@@ -37,10 +37,12 @@ func main() {
 	fmt.Printf("Created sobject: %v\n", sobjectToString(sobject))
 
 	// List all sobjects
+	withMetadata := true
 	queryParams := sdkms.ListSobjectsParams{
 		Sort: &sdkms.SobjectSort{
 			ByName: &sdkms.SobjectSortByName{},
 		},
+		WithMetadata: &withMetadata,
 	}
 	keys, err := client.ListSobjects(ctx, &queryParams)
 	if err != nil {

@@ -67,6 +67,33 @@ const (
 	AzureKeyVaultTypeManaged  AzureKeyVaultType = "MANAGED"
 )
 
+// The set of endpoints to use when connecting with Azure cloud.
+//
+// Today, only Azure global and Azure Government cloud endpoints are supported,
+// and they cannot be mixed together. The Azure global endpoints are
+// - `management`: management.azure.com
+// - `key_vault`: vault.azure.net
+// - `key_vault_managed_hsm`: managedhsm.azure.net
+// - `iam`: login.microsoftonline.com
+//
+// and the Azure Government endpoints are
+// - `management`: management.usgovcloudapi.net
+// - `key_vault`: vault.usgovcloudapi.net
+// - `key_vault_managed_hsm`: managedhsm.usgovcloudapi.net
+// - `iam`: login.microsoftonline.us
+//
+// (In the future, this restriction may be relaxed to support custom clouds.)
+type AzureServiceEndpoints struct {
+	// The API endpoint for managing Azure APIs and resources.
+	Management string `json:"management"`
+	// The API endpoint for Azure Key Vault (for Standard and Premium SKUs).
+	KeyVault string `json:"key_vault"`
+	// The API endpoint for Azure Key Vault Managed HSM.
+	KeyVaultManagedHsm string `json:"key_vault_managed_hsm"`
+	// The API endpoint for Azure AD (and authentication).
+	Iam string `json:"iam"`
+}
+
 type CheckHmgRequest struct {
 	// The ID of the hmg configuration in the group.
 	ID     *UUID      `json:"id,omitempty"`
@@ -285,6 +312,9 @@ type HmgConfigAzureKeyVault struct {
 	ClientID       UUID               `json:"client_id"`
 	SubscriptionID UUID               `json:"subscription_id"`
 	KeyVaultType   *AzureKeyVaultType `json:"key_vault_type,omitempty"`
+	// Which Azure endpoints to use. If not specified upon group creation or
+	// update, endpoints for (ordinary) Azure global cloud will be used.
+	Endpoints *AzureServiceEndpoints `json:"endpoints,omitempty"`
 }
 
 func (x HmgConfig) MarshalJSON() ([]byte, error) {

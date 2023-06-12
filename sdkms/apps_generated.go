@@ -427,7 +427,7 @@ func (x ListAppsParams) urlEncode(v map[string][]string) error {
 		return err
 	}
 	if x.GroupPermissions != nil {
-		v["group_permissions"] = []string{fmt.Sprintf("%v", x.GroupPermissions)}
+		v["group_permissions"] = []string{fmt.Sprintf("%v", *x.GroupPermissions)}
 	} else {
 		v["group_permissions"] = []string{"false"}
 	}
@@ -448,7 +448,7 @@ type PreviousCredential struct {
 type SubjectGeneral struct {
 	DirectoryName *[][2]string
 	DnsName       *string
-	IpAddress     *string
+	IpAddress     *IpAddr
 }
 
 func (x SubjectGeneral) MarshalJSON() ([]byte, error) {
@@ -462,7 +462,7 @@ func (x SubjectGeneral) MarshalJSON() ([]byte, error) {
 	var obj struct {
 		DirectoryName *[][2]string `json:"directory_name,omitempty"`
 		DnsName       *string      `json:"dns_name,omitempty"`
-		IpAddress     *string      `json:"ip_address,omitempty"`
+		IpAddress     *IpAddr      `json:"ip_address,omitempty"`
 	}
 	obj.DirectoryName = x.DirectoryName
 	obj.DnsName = x.DnsName
@@ -476,7 +476,7 @@ func (x *SubjectGeneral) UnmarshalJSON(data []byte) error {
 	var obj struct {
 		DirectoryName *[][2]string `json:"directory_name,omitempty"`
 		DnsName       *string      `json:"dns_name,omitempty"`
-		IpAddress     *string      `json:"ip_address,omitempty"`
+		IpAddress     *IpAddr      `json:"ip_address,omitempty"`
 	}
 	if err := json.Unmarshal(data, &obj); err != nil {
 		return err

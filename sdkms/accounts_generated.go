@@ -247,7 +247,7 @@ type AccountRequest struct {
 	WorkspaceCseConfig               *Removable[WorkspaceCseConfig] `json:"workspace_cse_config,omitempty"`
 }
 
-func (x *AccountRequest) MarshalJSON() ([]byte, error) {
+func (x AccountRequest) MarshalJSON() ([]byte, error) {
 	m := make(map[string]interface{})
 	{ // ApprovalRequestSettings
 		b, err := json.Marshal(&x.ApprovalRequestSettings)
@@ -278,7 +278,6 @@ func (x *AccountRequest) MarshalJSON() ([]byte, error) {
 	m["enabled"] = &x.Enabled
 	m["key_history_policy"] = &x.KeyHistoryPolicy
 	m["key_metadata_policy"] = &x.KeyMetadataPolicy
-
 	m["log_bad_requests"] = &x.LogBadRequests
 	m["log_retention_days"] = &x.LogRetentionDays
 	m["mark_key_disable_when_deactivated"] = &x.MarkKeyDisableWhenDeactivated
@@ -295,7 +294,6 @@ func (x *AccountRequest) MarshalJSON() ([]byte, error) {
 	m["workspace_cse_config"] = &x.WorkspaceCseConfig
 	return json.Marshal(&m)
 }
-
 func (x *AccountRequest) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &x.ApprovalRequestSettings); err != nil {
 		return err
@@ -521,6 +519,7 @@ type CustomSubscriptionType struct {
 	PackageName              *string               `json:"package_name,omitempty"`
 	Features                 *SubscriptionFeatures `json:"features,omitempty"`
 	AddOns                   *map[string]string    `json:"add_ons,omitempty"`
+	SoftOpsPerSecondLimit    *uint32               `json:"soft_ops_per_second_limit,omitempty"`
 }
 
 type FreemiumSubscriptionType struct {

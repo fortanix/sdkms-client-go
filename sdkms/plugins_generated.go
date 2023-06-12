@@ -131,8 +131,6 @@ func (x PluginSort) urlEncode(v map[string][]string) error {
 	return nil
 }
 
-type PluginVersion string
-
 // Plugin code that will be executed inside SGX enclave.
 type PluginSource struct {
 	FromRepo *PluginSourceFromRepo
