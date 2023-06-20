@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	myAPIKey string = "N2MwYThlYjgtMGZkNS00OWIxLWFkOWUt..."
+	myAPIKey string = "<NDQxNTI1MTk.........RTQ3B0RVk4NWNYNEl3>"
 )
 
 func main() {
@@ -65,9 +65,8 @@ func sobjectToString(sobject *sdkms.Sobject) string {
 	if err != nil {
 		log.Fatalf("Failed to convert sobject.CreatedAt: %v", err)
 	}
-	return fmt.Sprintf("{ %v %#v group(%v) enabled: %v created: %v }",
-		*sobject.Kid, *sobject.Name, *sobject.GroupID, sobject.Enabled,
-		created.Local())
+	return fmt.Sprintf("{ %v %#v group(%v) enabled: %v created: %v}",
+		*sobject.Kid, *sobject.Name, *sobject.GroupID, sobject.Enabled, created.Local())
 }
 
 func randomName(size uint) string {

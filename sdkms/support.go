@@ -17,7 +17,6 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 )
 
@@ -507,33 +506,28 @@ func (t *AuditLogTime) UnmarshalJSON(data []byte) (err error) {
 func (r *ListSobjectsResponse) UnmarshalJSON(data []byte) error {
 	// Define an intermediate struct to decode the items array.
 	type response struct {
-		Md    Metadata                 `json:"metadata,omitempty"`
-		Items []map[string]interface{} `json:"items,omitempty"`
+		Md    Metadata  `json:"metadata,omitempty"`
+		Items []Sobject `json:"items,omitempty"`
 	}
 
 	// Decode the JSON into the intermediate struct.
-	var resp response
-	if err := json.Unmarshal(data, &resp); err != nil {
-		return err
+	var resp1 response
+	var resp2 []Sobject
+	err1 := json.Unmarshal(data, &resp1)
+	err2 := json.Unmarshal(data, &resp2)
+
+	if err1 == nil {
+		r.Items = resp1.Items
+		r.Md = resp1.Md
+		return nil
 	}
 
-	// Convert the maps to Sobjects and assign them to the Items field.
-	r.Md = resp.Md
-	r.Items = make([]Sobject, len(resp.Items))
-	for i, item := range resp.Items {
-		var sobj Sobject
-		config := &mapstructure.DecoderConfig{
-			ErrorUnused: true,
-			Result:      &sobj,
-		}
-		decoder, err := mapstructure.NewDecoder(config)
-		if err != nil {
-			return err
-		}
-		if err := decoder.Decode(item); err != nil {
-			return err
-		}
-		r.Items[i] = sobj
+	if err2 == nil {
+		r.Items = resp2
+		return nil
+	}
+	if err1 != nil && err2 != nil {
+		return fmt.Errorf("Error in decoding ListSobjectResponse: %v, %v", err1, err2)
 	}
 	return nil
 }
