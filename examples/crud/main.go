@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	myAPIKey string = "N2MwYThlYjgtMGZkNS00OWIxLWFkOWUt..."
+	myAPIKey string = "<NDQxNTI1MTk.........RTQ3B0RVk4NWNYNEl3>"
 )
 
 func main() {
@@ -37,17 +37,19 @@ func main() {
 	fmt.Printf("Created sobject: %v\n", sobjectToString(sobject))
 
 	// List all sobjects
+	withMetadata := true
 	queryParams := sdkms.ListSobjectsParams{
-		Sort: sdkms.SobjectSort{
+		Sort: &sdkms.SobjectSort{
 			ByName: &sdkms.SobjectSortByName{},
 		},
+		WithMetadata: &withMetadata,
 	}
 	keys, err := client.ListSobjects(ctx, &queryParams)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("\n\nListing all sobjects (%v):\n", len(keys))
-	for _, key := range keys {
+	fmt.Printf("\n\nListing all sobjects (%v):\n", len(keys.Items))
+	for _, key := range keys.Items {
 		fmt.Printf("  %v\n", sobjectToString(&key))
 	}
 
@@ -63,9 +65,8 @@ func sobjectToString(sobject *sdkms.Sobject) string {
 	if err != nil {
 		log.Fatalf("Failed to convert sobject.CreatedAt: %v", err)
 	}
-	return fmt.Sprintf("{ %v %#v group(%v) enabled: %v created: %v }",
-		*sobject.Kid, *sobject.Name, *sobject.GroupID, sobject.Enabled,
-		created.Local())
+	return fmt.Sprintf("{ %v %#v group(%v) enabled: %v created: %v}",
+		*sobject.Kid, *sobject.Name, *sobject.GroupID, sobject.Enabled, created.Local())
 }
 
 func randomName(size uint) string {

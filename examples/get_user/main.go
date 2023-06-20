@@ -57,15 +57,18 @@ func main() {
 }
 
 func accountRoleToString(role sdkms.UserAccountFlags) string {
-	var s = "Unknown"
-	if role&sdkms.UserAccountFlagsAccountadministrator == sdkms.UserAccountFlagsAccountadministrator {
-		s = "Administrator"
-	}
-	if role&sdkms.UserAccountFlagsAccountauditor == sdkms.UserAccountFlagsAccountauditor {
-		s = "Auditor"
-	}
-	if role&sdkms.UserAccountFlagsAccountmember == sdkms.UserAccountFlagsAccountmember {
-		s = "Member"
+	var s string = ""
+	for _, val := range role {
+		if val.Flag != nil {
+			s = s + fmt.Sprintf("UserAccountFlag: %s", *val.Flag)
+		}
+		if val.LegacyRole != nil {
+			s = s + fmt.Sprintf("LegacyUserAccountRole: %s", *val.LegacyRole)
+		}
+		if val.RoleID != nil {
+			s = s + fmt.Sprintf("Role ID: %s", *val.RoleID)
+		}
+		s = s + ", "
 	}
 	return s
 }

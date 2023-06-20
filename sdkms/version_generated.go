@@ -11,7 +11,7 @@ import (
 	"net/http"
 )
 
-// Server mode.
+// Server execution mode.
 type ServerMode string
 
 // List of supported ServerMode values
@@ -32,7 +32,8 @@ type VersionResponse struct {
 	FipsLevel *uint8 `json:"fips_level,omitempty"`
 }
 
-// Returns information about the  SDKMS server version and the client API version that it supports.
+// Returns information about the DSM server version and the client
+// API version that it supports.
 func (c *Client) Version(ctx context.Context) (*VersionResponse, error) {
 	u := "/sys/v1/version"
 	var r VersionResponse

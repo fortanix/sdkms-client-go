@@ -39,7 +39,7 @@ func Test_GetAccountParams(t *testing.T) {
 		want  string
 	}{
 		{input: GetAccountParams{}, want: "with_totals=false"},
-		{input: GetAccountParams{WithTotals: true}, want: "with_totals=true"},
+		{input: GetAccountParams{WithTotals: someBoolean(true)}, want: "with_totals=true"},
 	}
 	for i, tc := range tt {
 		t.Run(fmt.Sprintf("Encode-%v", i), func(t *testing.T) {
@@ -158,3 +158,4 @@ func Test_ListAppsParams(t *testing.T) {
 func someUint(x uint) *uint                               { return &x }
 func someUint64(x uint64) *uint64                         { return &x }
 func someApprovalStatus(x ApprovalStatus) *ApprovalStatus { return &x }
+func someBoolean(x bool) *bool                            { return &x }

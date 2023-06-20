@@ -7,9 +7,13 @@
 package sdkms
 
 import (
+	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/url"
+	"strconv"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -310,3 +314,220 @@ const (
 )
 
 func someString(val string) *string { return &val }
+
+type HyperHttpMethod string
+
+// Common HTTP methods.
+//
+// Unless otherwise noted, these are defined in RFC 7231 section 4.3.
+const (
+	MethodGet     HyperHttpMethod = "GET"
+	MethodHead    HyperHttpMethod = "HEAD"
+	MethodPost    HyperHttpMethod = "POST"
+	MethodPut     HyperHttpMethod = "PUT"
+	MethodPatch   HyperHttpMethod = "PATCH" // RFC 5789
+	MethodDelete  HyperHttpMethod = "DELETE"
+	MethodConnect HyperHttpMethod = "CONNECT"
+	MethodOptions HyperHttpMethod = "OPTIONS"
+	MethodTrace   HyperHttpMethod = "TRACE"
+)
+
+type COSEAlgorithmIdentifier int16
+
+const (
+	Es256 COSEAlgorithmIdentifier = -7
+)
+
+type PublicKeyCredentialEntityForRp struct {
+	// Name of the entity
+	Name string `json:"name"`
+	// <https://www.w3.org/TR/webauthn-2/#dictionary-rp-credential-params>
+	Entity *PublicKeyCredentialRpEntity `json:"entity"`
+}
+
+type PublicKeyCredentialAuthenticatorAssertionResponse struct {
+	// Identifier of Credential
+	Id string `json:"id"`
+	// Type of credential
+	Type     *PublicKeyCredentialType        `json:"type"`
+	Response *AuthenticatorAssertionResponse `json:"response"`
+	// This field contains client extension output entries produced by the extension’s client extension processing.
+	ExtensionResults *AuthenticationExtensionsClientOutputs `json:"get_client_extension_results"`
+}
+
+type PublicKeyCredentialEntityForUser struct {
+	//
+	Name string `json:"name"`
+	//
+	Entity PublicKeyCredentialUserEntity `json:"entity"`
+}
+
+func someBlob(val []byte) *[]byte { return &val }
+
+type Removable[T any] struct {
+	value *T
+}
+
+func (r *Removable[T]) RemoveVal() Removable[T] {
+	return Removable[T]{value: nil}
+}
+
+func (r *Removable[T]) BuildStruct(value T) Removable[T] {
+	return Removable[T]{value: &value}
+}
+
+func (r Removable[T]) Get() *T {
+	return r.value
+}
+
+func (r *Removable[T]) MarshalJSON() ([]byte, error) {
+	if r.value == nil {
+		return json.Marshal("remove")
+	}
+	return json.Marshal(r.value)
+}
+
+func (r *Removable[T]) UnmarshalJSON(data []byte) error {
+	var maybeRemove string
+	if err := json.Unmarshal(data, &maybeRemove); err == nil {
+		if maybeRemove == "remove" {
+			r.value = nil
+			return nil
+		} else {
+			t := *new(T)
+			return errors.Errorf("invalid value for Removable[%T]: expected \"remove\" or %T", t, t)
+		}
+	}
+	return json.Unmarshal(data, &r.value)
+}
+
+type Base64UrlSafe []byte
+
+func (x Base64UrlSafe) MarshalJSON() ([]byte, error) {
+
+	enc := make([]byte, len(x))
+	b64.URLEncoding.Encode(enc, x)
+	return json.Marshal(&enc)
+}
+
+func (x Base64UrlSafe) UnmarshalJSON(data []byte) error {
+	var raw string
+	err := json.Unmarshal(data, &raw)
+	if err != nil {
+		return err
+	}
+	var sDec []byte
+	var decErr error
+	if decErr != nil {
+		return decErr
+	}
+	sDec, decErr = b64.URLEncoding.DecodeString(raw)
+	x = sDec
+	return nil
+}
+
+type IpAddr struct {
+	Address net.IP
+}
+
+func (x *IpAddr) MarshalJSON() ([]byte, error) {
+	return x.Address.MarshalText()
+}
+
+func (x *IpAddr) UnmarshalJSON(data []byte) error {
+	err := x.Address.UnmarshalText(data)
+	return err
+}
+
+type Duration struct {
+	Secs  uint64 `json:"secs,omitempty"`
+	Nanos uint32 `json:"nanos,omitempty"` // Always 0 <= nanos < NANOS_PER_SEC
+}
+
+type PluginVersion struct {
+	Major uint64
+	Minor uint64
+}
+
+func (x *PluginVersion) MarshalJSON() ([]byte, error) {
+	var ver string
+	ver = fmt.Sprintf("%v.%v", x.Major, x.Minor)
+	return json.Marshal(&ver)
+}
+
+func (x *PluginVersion) UnmarshalJSON(data []byte) error {
+	var obj string
+	err := json.Unmarshal(data, &obj)
+	if err != nil {
+		return err
+	}
+	ver := strings.Split(obj, ".")
+	var convErr error
+	maj, convErr := strconv.ParseUint(ver[0], 10, 32)
+	if convErr != nil {
+		return convErr
+	}
+	min, convErr := strconv.ParseUint(ver[1], 10, 32)
+	if convErr != nil {
+		return convErr
+	}
+	x.Major = maj
+	x.Minor = min
+	return nil
+}
+
+type PublicKeyCredentialAuthenticatorAttestationResponse struct {
+	Id               Base64UrlSafe                         `json:"id,omitempty"`
+	Type             PublicKeyCredentialType               `json:"type,omitempty"`
+	Response         AuthenticatorAssertionResponse        `json:"response,omitempty"`
+	ExtensionResults AuthenticationExtensionsClientOutputs `json:"get_client_extension_results,omitempty"`
+}
+
+type AuditLogTime time.Time
+
+func (t AuditLogTime) MarshalJSON() ([]byte, error) {
+	strDate := time.Time(t).Format(time.RFC3339)
+	return json.Marshal(strDate)
+}
+
+func (t *AuditLogTime) UnmarshalJSON(data []byte) (err error) {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	q, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		return fmt.Errorf("Unable to parse the AuditLogTime: %v", err)
+	}
+	*t = AuditLogTime(q)
+	return nil
+}
+
+func (r *ListSobjectsResponse) UnmarshalJSON(data []byte) error {
+	// Define an intermediate struct to decode the items array.
+	type response struct {
+		Md    Metadata  `json:"metadata,omitempty"`
+		Items []Sobject `json:"items,omitempty"`
+	}
+
+	// Decode the JSON into the intermediate struct.
+	var resp1 response
+	var resp2 []Sobject
+	err1 := json.Unmarshal(data, &resp1)
+	err2 := json.Unmarshal(data, &resp2)
+
+	if err1 == nil {
+		r.Items = resp1.Items
+		r.Md = resp1.Md
+		return nil
+	}
+
+	if err2 == nil {
+		r.Items = resp2
+		return nil
+	}
+	if err1 != nil && err2 != nil {
+		return fmt.Errorf("Error in decoding ListSobjectResponse: %v, %v", err1, err2)
+	}
+	return nil
+}
