@@ -361,18 +361,13 @@ type SobjectRekeyRequest struct {
 
 func (x SobjectRekeyRequest) MarshalJSON() ([]byte, error) {
 	m := make(map[string]interface{})
-	{ // Dest
-		b, err := json.Marshal(&x.Dest)
-		if err != nil {
-			return nil, err
-		}
-		f := make(map[string]interface{})
-		if err := json.Unmarshal(b, &f); err != nil {
-			return nil, err
-		}
-		for k, v := range f {
-			m[k] = &v
-		}
+	// Dest
+	b, err := json.Marshal(&x.Dest)
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(b, &m); err != nil {
+		return nil, err
 	}
 	m["deactivate_rotated_key"] = &x.DeactivateRotatedKey
 	return json.Marshal(&m)
