@@ -504,6 +504,10 @@ const (
 	AppPermissionsMaskdecrypt
 	AppPermissionsAudit
 	AppPermissionsTransform
+	AppPermissionsCreateKey
+	AppPermissionsDestroyKey
+	AppPermissionsGetPublicKey
+	AppPermissionsGetInfo
 )
 
 // MarshalJSON converts AppPermissions to an array of strings
