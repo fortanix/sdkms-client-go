@@ -563,10 +563,11 @@ func (x AppPermissions) MarshalJSON() ([]byte, error) {
 	}
 	if x&AppPermissionsDestroyKey == AppPermissionsDestroyKey {
 		s = append(s, "DESTROYKEY")
-	if x&AppPermissionsGetPublicKey == AppPermissionsDestroyKey {
+	}
+	if x&AppPermissionsGetPublicKey == AppPermissionsGetPublicKey {
 		s = append(s, "GETPUBLICKEY")
 	}
-	if x&AppPermissionsGetInfo == AppPermissionsDestroyKey {
+	if x&AppPermissionsGetInfo == AppPermissionsGetInfo {
 		s = append(s, "GETINFO")
 	}
 	return json.Marshal(s)
