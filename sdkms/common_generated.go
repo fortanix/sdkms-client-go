@@ -559,16 +559,15 @@ func (x AppPermissions) MarshalJSON() ([]byte, error) {
 		s = append(s, "TRANSFORM")
 	}
 	if x&AppPermissionsCreateKey == AppPermissionsCreateKey {
-		s = append(s, "CREATE_KEY")
+		s = append(s, "CREATEKEY")
 	}
 	if x&AppPermissionsDestroyKey == AppPermissionsDestroyKey {
-		s = append(s, "DESTROY_KEY")
-	}
+		s = append(s, "DESTROYKEY")
 	if x&AppPermissionsGetPublicKey == AppPermissionsDestroyKey {
-		s = append(s, "GET_PUBLIC_KEY")
+		s = append(s, "GETPUBLICKEY")
 	}
 	if x&AppPermissionsGetInfo == AppPermissionsDestroyKey {
-		s = append(s, "GET_INFO")
+		s = append(s, "GETINFO")
 	}
 	return json.Marshal(s)
 }
@@ -612,13 +611,13 @@ func (x *AppPermissions) UnmarshalJSON(data []byte) error {
 			*x = *x | AppPermissionsAudit
 		case "TRANSFORM":
 			*x = *x | AppPermissionsTransform
-		case "CREATE_KEY":
+		case "CREATEKEY":
 			*x = *x | AppPermissionsCreateKey
-		case "DESTROY_KEY":
+		case "DESTROYKEY":
 			*x = *x | AppPermissionsDestroyKey
-		case "GET_PUBLIC_KEY":
+		case "GETPUBLICKEY":
 			*x = *x | AppPermissionsGetPublicKey
-		case "GET_INFO":
+		case "GETINFO":
 			*x = *x | AppPermissionsGetInfo
 		}
 	}
