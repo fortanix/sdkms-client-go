@@ -361,13 +361,18 @@ type SobjectRekeyRequest struct {
 
 func (x SobjectRekeyRequest) MarshalJSON() ([]byte, error) {
 	m := make(map[string]interface{})
-	// Dest
-	b, err := json.Marshal(&x.Dest)
-	if err != nil {
-		return nil, err
-	}
-	if err := json.Unmarshal(b, &m); err != nil {
-		return nil, err
+	{ // Dest
+		b, err := json.Marshal(&x.Dest)
+		if err != nil {
+			return nil, err
+		}
+		f := make(map[string]interface{})
+		if err := json.Unmarshal(b, &f); err != nil {
+			return nil, err
+		}
+		for k, v := range f {
+			m[k] = &v
+		}
 	}
 	m["deactivate_rotated_key"] = &x.DeactivateRotatedKey
 	return json.Marshal(&m)
@@ -436,7 +441,7 @@ type SobjectRequest struct {
 	Fpe *FpeOptions `json:"fpe,omitempty"`
 	// Key Access Justifications for GCP EKM.
 	// For more details: https://cloud.google.com/cloud-provider-access-management/key-access-justifications/docs/overview
-	GoogleAccessReasonPolicy Removable[GoogleAccessReasonPolicy] `json:"google_access_reason_policy,omitempty"`
+	GoogleAccessReasonPolicy *Removable[GoogleAccessReasonPolicy] `json:"google_access_reason_policy,omitempty"`
 	// KCDSA specific options.
 	Kcdsa *KcdsaOptions `json:"kcdsa,omitempty"`
 	// Key Checksum Value of the security object.
@@ -974,7 +979,7 @@ func (c *Client) RequestApprovalToRemovePrivate(
 //
 // For two keys R and S, where R is the key to be replaced,
 // and S is the intended replacement, this operation will
-//   - Rename R to the name provied in the request
+//   - Rename R to the name provided in the request
 //   - Establish an replaced-replacement between R and S
 //   - Assign R's old name to S
 //

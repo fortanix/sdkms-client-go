@@ -131,8 +131,6 @@ type MfaDelDeviceRequest struct {
 type MfaDevice struct {
 	// Name given to the FIDO device.
 	Name string `json:"name"`
-	// Origin of the FIDO device.
-	Origin *string `json:"origin,omitempty"`
 }
 
 // Request to rename a FIDO device.
