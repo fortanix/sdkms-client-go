@@ -174,7 +174,7 @@ type ListSobjectsParams struct {
 	// Only show security objects complying with group and account policies.
 	CompliantWithPolicies *bool `json:"compliant_with_policies,omitempty"`
 	// Filter security object(s) by custom_metadata fields.
-	CustomMetadata map[string]string `json:"custom_metadata,omitempty"`
+	CustomMetadata *CustomMetadata `json:"custom_metadata,omitempty"`
 	// Display query metadata in response, containing information on total objects
 	// and number of objects skipped.
 	WithMetadata *bool `json:"with_metadata,omitempty"`
@@ -223,6 +223,9 @@ func (x ListSobjectsParams) urlEncode(v map[string][]string) error {
 	if x.CompliantWithPolicies != nil {
 		v["compliant_with_policies"] = []string{fmt.Sprintf("%v", *x.CompliantWithPolicies)}
 	}
+	if err := x.CustomMetadata.urlEncode(v); err != nil {
+		return err
+	}
 	if x.WithMetadata != nil {
 		v["with_metadata"] = []string{fmt.Sprintf("%v", *x.WithMetadata)}
 	}
@@ -243,9 +246,6 @@ func (x ListSobjectsParams) urlEncode(v map[string][]string) error {
 	}
 	if x.Filter != nil {
 		v["filter"] = []string{fmt.Sprintf("%v", *x.Filter)}
-	}
-	for k, val := range x.CustomMetadata {
-		v[fmt.Sprintf("custom_metadata.%s", k)] = []string{val}
 	}
 	return nil
 }

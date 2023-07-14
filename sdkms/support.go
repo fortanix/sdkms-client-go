@@ -531,3 +531,12 @@ func (r *ListSobjectsResponse) UnmarshalJSON(data []byte) error {
 	}
 	return nil
 }
+
+type CustomMetadata map[string]string
+
+func (x *CustomMetadata) urlEncode(v map[string][]string) error {
+	for k, val := range *x {
+		v[fmt.Sprintf("custom_metadata.%s", k)] = []string{val}
+	}
+	return nil
+}
