@@ -174,7 +174,7 @@ type ListSobjectsParams struct {
 	// Only show security objects complying with group and account policies.
 	CompliantWithPolicies *bool `json:"compliant_with_policies,omitempty"`
 	// Filter security object(s) by custom_metadata fields.
-	CustomMetadata map[string]string `json:"custom_metadata,omitempty"`
+	CustomMetadata *CustomMetadata `json:"custom_metadata,omitempty"`
 	// Display query metadata in response, containing information on total objects
 	// and number of objects skipped.
 	WithMetadata *bool `json:"with_metadata,omitempty"`
@@ -223,6 +223,9 @@ func (x ListSobjectsParams) urlEncode(v map[string][]string) error {
 	if x.CompliantWithPolicies != nil {
 		v["compliant_with_policies"] = []string{fmt.Sprintf("%v", *x.CompliantWithPolicies)}
 	}
+	if err := x.CustomMetadata.urlEncode(v); err != nil {
+		return err
+	}
 	if x.WithMetadata != nil {
 		v["with_metadata"] = []string{fmt.Sprintf("%v", *x.WithMetadata)}
 	}
@@ -243,9 +246,6 @@ func (x ListSobjectsParams) urlEncode(v map[string][]string) error {
 	}
 	if x.Filter != nil {
 		v["filter"] = []string{fmt.Sprintf("%v", *x.Filter)}
-	}
-	for k, val := range x.CustomMetadata {
-		v[fmt.Sprintf("custom_metadata.%s", k)] = []string{val}
 	}
 	return nil
 }
@@ -361,13 +361,18 @@ type SobjectRekeyRequest struct {
 
 func (x SobjectRekeyRequest) MarshalJSON() ([]byte, error) {
 	m := make(map[string]interface{})
-	// Dest
-	b, err := json.Marshal(&x.Dest)
-	if err != nil {
-		return nil, err
-	}
-	if err := json.Unmarshal(b, &m); err != nil {
-		return nil, err
+	{ // Dest
+		b, err := json.Marshal(&x.Dest)
+		if err != nil {
+			return nil, err
+		}
+		f := make(map[string]interface{})
+		if err := json.Unmarshal(b, &f); err != nil {
+			return nil, err
+		}
+		for k, v := range f {
+			m[k] = &v
+		}
 	}
 	m["deactivate_rotated_key"] = &x.DeactivateRotatedKey
 	return json.Marshal(&m)
@@ -436,7 +441,7 @@ type SobjectRequest struct {
 	Fpe *FpeOptions `json:"fpe,omitempty"`
 	// Key Access Justifications for GCP EKM.
 	// For more details: https://cloud.google.com/cloud-provider-access-management/key-access-justifications/docs/overview
-	GoogleAccessReasonPolicy Removable[GoogleAccessReasonPolicy] `json:"google_access_reason_policy,omitempty"`
+	GoogleAccessReasonPolicy *Removable[GoogleAccessReasonPolicy] `json:"google_access_reason_policy,omitempty"`
 	// KCDSA specific options.
 	Kcdsa *KcdsaOptions `json:"kcdsa,omitempty"`
 	// Key Checksum Value of the security object.
@@ -974,7 +979,7 @@ func (c *Client) RequestApprovalToRemovePrivate(
 //
 // For two keys R and S, where R is the key to be replaced,
 // and S is the intended replacement, this operation will
-//   - Rename R to the name provied in the request
+//   - Rename R to the name provided in the request
 //   - Establish an replaced-replacement between R and S
 //   - Assign R's old name to S
 //

@@ -38,7 +38,7 @@ func Test_GetAccountParams(t *testing.T) {
 		input GetAccountParams
 		want  string
 	}{
-		{input: GetAccountParams{}, want: "with_totals=false"},
+		{input: GetAccountParams{}, want: ""},
 		{input: GetAccountParams{WithTotals: someBoolean(true)}, want: "with_totals=true"},
 	}
 	for i, tc := range tt {
@@ -100,13 +100,13 @@ func Test_ListAppsParams(t *testing.T) {
 		input ListAppsParams
 		want  string
 	}{
-		{input: ListAppsParams{}, want: "group_permissions=false"},
+		{input: ListAppsParams{}, want: ""},
 		{
 			input: ListAppsParams{
 				GroupID: someString("75814e50-41b9-4913-be93-6184294a55ea"),
 				Limit:   someUint(65),
 			},
-			want: "group_id=75814e50-41b9-4913-be93-6184294a55ea&group_permissions=false&limit=65",
+			want: "group_id=75814e50-41b9-4913-be93-6184294a55ea&limit=65",
 		},
 		{
 			input: ListAppsParams{
@@ -115,7 +115,7 @@ func Test_ListAppsParams(t *testing.T) {
 					ByAppID: &AppSortByAppId{},
 				},
 			},
-			want: "group_permissions=false&limit=65&sort=app_id",
+			want: "limit=65&sort=app_id",
 		},
 		{
 			input: ListAppsParams{
@@ -126,7 +126,7 @@ func Test_ListAppsParams(t *testing.T) {
 					},
 				},
 			},
-			want: "group_permissions=false&limit=65&sort=app_id&start=myApp",
+			want: "limit=65&sort=app_id&start=myApp",
 		},
 		{
 			input: ListAppsParams{
@@ -139,7 +139,7 @@ func Test_ListAppsParams(t *testing.T) {
 					},
 				},
 			},
-			want: "group_id=75814e50-41b9-4913-be93-6184294a55ea&group_permissions=false&limit=65&sort=app_id%3Aasc&start=myApp",
+			want: "group_id=75814e50-41b9-4913-be93-6184294a55ea&limit=65&sort=app_id%3Aasc&start=myApp",
 		},
 	}
 	for i, tc := range tt {

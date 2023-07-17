@@ -428,8 +428,6 @@ func (x ListAppsParams) urlEncode(v map[string][]string) error {
 	}
 	if x.GroupPermissions != nil {
 		v["group_permissions"] = []string{fmt.Sprintf("%v", *x.GroupPermissions)}
-	} else {
-		v["group_permissions"] = []string{"false"}
 	}
 	if x.Role != nil {
 		v["role"] = []string{fmt.Sprintf("%v", *x.Role)}

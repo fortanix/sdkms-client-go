@@ -540,8 +540,6 @@ type GetAccountParams struct {
 func (x GetAccountParams) urlEncode(v map[string][]string) error {
 	if x.WithTotals != nil {
 		v["with_totals"] = []string{fmt.Sprintf("%v", *x.WithTotals)}
-	} else {
-		v["with_totals"] = []string{"false"}
 	}
 	if x.PreviousID != nil {
 		v["previous_id"] = []string{fmt.Sprintf("%v", *x.PreviousID)}
