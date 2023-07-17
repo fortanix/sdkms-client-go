@@ -504,6 +504,10 @@ const (
 	AppPermissionsMaskdecrypt
 	AppPermissionsAudit
 	AppPermissionsTransform
+	AppPermissionsCreateKey
+	AppPermissionsDestroyKey
+	AppPermissionsGetPublicKey
+	AppPermissionsGetInfo
 )
 
 // MarshalJSON converts AppPermissions to an array of strings
@@ -554,6 +558,18 @@ func (x AppPermissions) MarshalJSON() ([]byte, error) {
 	if x&AppPermissionsTransform == AppPermissionsTransform {
 		s = append(s, "TRANSFORM")
 	}
+	if x&AppPermissionsCreateKey == AppPermissionsCreateKey {
+		s = append(s, "CREATEKEY")
+	}
+	if x&AppPermissionsDestroyKey == AppPermissionsDestroyKey {
+		s = append(s, "DESTROYKEY")
+	}
+	if x&AppPermissionsGetPublicKey == AppPermissionsGetPublicKey {
+		s = append(s, "GETPUBLICKEY")
+	}
+	if x&AppPermissionsGetInfo == AppPermissionsGetInfo {
+		s = append(s, "GETINFO")
+	}
 	return json.Marshal(s)
 }
 
@@ -596,6 +612,14 @@ func (x *AppPermissions) UnmarshalJSON(data []byte) error {
 			*x = *x | AppPermissionsAudit
 		case "TRANSFORM":
 			*x = *x | AppPermissionsTransform
+		case "CREATEKEY":
+			*x = *x | AppPermissionsCreateKey
+		case "DESTROYKEY":
+			*x = *x | AppPermissionsDestroyKey
+		case "GETPUBLICKEY":
+			*x = *x | AppPermissionsGetPublicKey
+		case "GETINFO":
+			*x = *x | AppPermissionsGetInfo
 		}
 	}
 	return nil
