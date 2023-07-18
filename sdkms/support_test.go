@@ -13,17 +13,18 @@ import (
 
 func Test_CustomMetadata(t *testing.T) {
 	tt := []struct {
-		input CustomMetadata
+		input *CustomMetadata
 		want  string
 	}{
-		{input: CustomMetadata(nil), want: ""},
-		{input: CustomMetadata(map[string]string{}), want: ""},
-		{input: CustomMetadata(map[string]string{"hello": "world"}), want: "custom_metadata.hello=world"},
-		{input: CustomMetadata(map[string]string{"hello": "world", "test": "abcd"}), want: "custom_metadata.hello=world&custom_metadata.test=abcd"},
+		{input: nil, want: ""},
+		{input: Some(CustomMetadata(nil)), want: ""},
+		{input: Some(CustomMetadata(map[string]string{})), want: ""},
+		{input: Some(CustomMetadata(map[string]string{"hello": "world"})), want: "custom_metadata.hello=world"},
+		{input: Some(CustomMetadata(map[string]string{"hello": "world", "test": "abcd"})), want: "custom_metadata.hello=world&custom_metadata.test=abcd"},
 	}
 	for i, tc := range tt {
 		t.Run(fmt.Sprintf("Encode-%v", i), func(t *testing.T) {
-			got, err := encodeURLParams(&tc.input)
+			got, err := encodeURLParams(tc.input)
 			if err != nil {
 				t.Errorf("failed to encode URL params: %v", err)
 			}
@@ -32,4 +33,17 @@ func Test_CustomMetadata(t *testing.T) {
 			}
 		})
 	}
+}
+
+func ExampleSome() {
+	test := func(x *string) {
+		if x != nil {
+			fmt.Printf("%v\n", *x)
+		}
+	}
+
+	test(Some("hello"))
+	test(nil)
+	// Output:
+	// hello
 }

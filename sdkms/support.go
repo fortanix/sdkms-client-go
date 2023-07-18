@@ -313,8 +313,6 @@ const (
 	OrderDescending Order = ":desc"
 )
 
-func someString(val string) *string { return &val }
-
 type HyperHttpMethod string
 
 // Common HTTP methods.
@@ -361,8 +359,6 @@ type PublicKeyCredentialEntityForUser struct {
 	//
 	Entity PublicKeyCredentialUserEntity `json:"entity"`
 }
-
-func someBlob(val []byte) *[]byte { return &val }
 
 type Removable[T any] struct {
 	value *T
@@ -535,8 +531,23 @@ func (r *ListSobjectsResponse) UnmarshalJSON(data []byte) error {
 type CustomMetadata map[string]string
 
 func (x *CustomMetadata) urlEncode(v map[string][]string) error {
+	if x == nil {
+		return nil
+	}
 	for k, val := range *x {
 		v[fmt.Sprintf("custom_metadata.%s", k)] = []string{val}
 	}
 	return nil
 }
+
+// Turns a value into a non-nil pointer. This is a convenience function since
+// it's not possible to take the address of a literal in Go.
+func Some[T any](x T) *T {
+	return &x
+}
+
+// TODO: remove these in favor of the generic Some. Note that these are used in
+// generated code, so we should change the codegen to use the generic version.
+
+func someString(val string) *string { return &val }
+func someBlob(val []byte) *[]byte   { return &val }
