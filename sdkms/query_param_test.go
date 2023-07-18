@@ -17,8 +17,8 @@ func Test_CountParams(t *testing.T) {
 		want  string
 	}{
 		{input: CountParams{}, want: ""},
-		{input: CountParams{RangeFrom: someUint64(5)}, want: "range_from=5"},
-		{input: CountParams{RangeFrom: someUint64(5), RangeTo: someUint64(42)}, want: "range_from=5&range_to=42"},
+		{input: CountParams{RangeFrom: Some(uint64(5))}, want: "range_from=5"},
+		{input: CountParams{RangeFrom: Some(uint64(5)), RangeTo: Some(uint64(42))}, want: "range_from=5&range_to=42"},
 	}
 	for i, tc := range tt {
 		t.Run(fmt.Sprintf("Encode-%v", i), func(t *testing.T) {
@@ -39,7 +39,7 @@ func Test_GetAccountParams(t *testing.T) {
 		want  string
 	}{
 		{input: GetAccountParams{}, want: ""},
-		{input: GetAccountParams{WithTotals: someBoolean(true)}, want: "with_totals=true"},
+		{input: GetAccountParams{WithTotals: Some(true)}, want: "with_totals=true"},
 	}
 	for i, tc := range tt {
 		t.Run(fmt.Sprintf("Encode-%v", i), func(t *testing.T) {
@@ -62,22 +62,22 @@ func Test_ListApprovalRequestsParams(t *testing.T) {
 		{input: ListApprovalRequestsParams{}, want: ""},
 		{
 			input: ListApprovalRequestsParams{
-				Requester: someString("b0814e50-41b9-4913-be93-6184294a55ea"),
+				Requester: Some("b0814e50-41b9-4913-be93-6184294a55ea"),
 			},
 			want: "requester=b0814e50-41b9-4913-be93-6184294a55ea",
 		},
 		{
 			input: ListApprovalRequestsParams{
-				Reviewer: someString("b0814e50-41b9-4913-be93-6184294a55ea"),
-				Status:   someApprovalStatus(ApprovalStatusApproved),
+				Reviewer: Some("b0814e50-41b9-4913-be93-6184294a55ea"),
+				Status:   Some(ApprovalStatusApproved),
 			},
 			want: "reviewer=b0814e50-41b9-4913-be93-6184294a55ea&status=APPROVED",
 		},
 		{
 			input: ListApprovalRequestsParams{
-				Requester: someString("8ecb8bd8-5da6-469e-b114-aed52519f03e"),
-				Reviewer:  someString("b0814e50-41b9-4913-be93-6184294a55ea"),
-				Status:    someApprovalStatus(ApprovalStatusDenied),
+				Requester: Some("8ecb8bd8-5da6-469e-b114-aed52519f03e"),
+				Reviewer:  Some("b0814e50-41b9-4913-be93-6184294a55ea"),
+				Status:    Some(ApprovalStatusDenied),
 			},
 			want: "requester=8ecb8bd8-5da6-469e-b114-aed52519f03e&reviewer=b0814e50-41b9-4913-be93-6184294a55ea&status=DENIED",
 		},
@@ -103,14 +103,14 @@ func Test_ListAppsParams(t *testing.T) {
 		{input: ListAppsParams{}, want: ""},
 		{
 			input: ListAppsParams{
-				GroupID: someString("75814e50-41b9-4913-be93-6184294a55ea"),
-				Limit:   someUint(65),
+				GroupID: Some("75814e50-41b9-4913-be93-6184294a55ea"),
+				Limit:   Some(uint(65)),
 			},
 			want: "group_id=75814e50-41b9-4913-be93-6184294a55ea&limit=65",
 		},
 		{
 			input: ListAppsParams{
-				Limit: someUint(65),
+				Limit: Some(uint(65)),
 				Sort: AppSort{
 					ByAppID: &AppSortByAppId{},
 				},
@@ -119,10 +119,10 @@ func Test_ListAppsParams(t *testing.T) {
 		},
 		{
 			input: ListAppsParams{
-				Limit: someUint(65),
+				Limit: Some(uint(65)),
 				Sort: AppSort{
 					ByAppID: &AppSortByAppId{
-						Start: someString("myApp"),
+						Start: Some("myApp"),
 					},
 				},
 			},
@@ -130,12 +130,12 @@ func Test_ListAppsParams(t *testing.T) {
 		},
 		{
 			input: ListAppsParams{
-				GroupID: someString("75814e50-41b9-4913-be93-6184294a55ea"),
-				Limit:   someUint(65),
+				GroupID: Some("75814e50-41b9-4913-be93-6184294a55ea"),
+				Limit:   Some(uint(65)),
 				Sort: AppSort{
 					ByAppID: &AppSortByAppId{
 						Order: OrderAscending,
-						Start: someString("myApp"),
+						Start: Some("myApp"),
 					},
 				},
 			},
@@ -154,8 +154,3 @@ func Test_ListAppsParams(t *testing.T) {
 		})
 	}
 }
-
-func someUint(x uint) *uint                               { return &x }
-func someUint64(x uint64) *uint64                         { return &x }
-func someApprovalStatus(x ApprovalStatus) *ApprovalStatus { return &x }
-func someBoolean(x bool) *bool                            { return &x }
