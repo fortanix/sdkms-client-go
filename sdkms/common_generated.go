@@ -3721,7 +3721,7 @@ type Quorum struct {
 
 func (x Quorum) MarshalJSON() ([]byte, error) {
 	m := make(map[string]interface{})
-	{ // Config
+	{ // x.Config is flattened
 		b, err := json.Marshal(&x.Config)
 		if err != nil {
 			return nil, err
@@ -3731,11 +3731,13 @@ func (x Quorum) MarshalJSON() ([]byte, error) {
 			return nil, err
 		}
 		for k, v := range f {
-			m[k] = &v
+			m[k] = v
 		}
 	}
-	m["n"] = &x.N
-	m["members"] = &x.Members
+	m["n"] = x.N
+	if x.Members != nil {
+		m["members"] = x.Members
+	}
 	return json.Marshal(&m)
 }
 func (x *Quorum) UnmarshalJSON(data []byte) error {
@@ -3908,7 +3910,7 @@ type RotationPolicy struct {
 
 func (x RotationPolicy) MarshalJSON() ([]byte, error) {
 	m := make(map[string]interface{})
-	{ // Interval
+	{ // x.Interval is flattened
 		b, err := json.Marshal(&x.Interval)
 		if err != nil {
 			return nil, err
@@ -3918,12 +3920,18 @@ func (x RotationPolicy) MarshalJSON() ([]byte, error) {
 			return nil, err
 		}
 		for k, v := range f {
-			m[k] = &v
+			m[k] = v
 		}
 	}
-	m["effective_at"] = &x.EffectiveAt
-	m["deactivate_rotated_key"] = &x.DeactivateRotatedKey
-	m["rotate_copied_keys"] = &x.RotateCopiedKeys
+	if x.EffectiveAt != nil {
+		m["effective_at"] = x.EffectiveAt
+	}
+	if x.DeactivateRotatedKey != nil {
+		m["deactivate_rotated_key"] = x.DeactivateRotatedKey
+	}
+	if x.RotateCopiedKeys != nil {
+		m["rotate_copied_keys"] = x.RotateCopiedKeys
+	}
 	return json.Marshal(&m)
 }
 func (x *RotationPolicy) UnmarshalJSON(data []byte) error {

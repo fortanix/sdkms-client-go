@@ -9,6 +9,7 @@ package sdkms
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -225,7 +226,7 @@ func Test_TlsConfig(t *testing.T) {
 			if err := json.Unmarshal([]byte(tc.want), &v); err != nil {
 				t.Fatalf("Failed to unmarshal: %v", err)
 			}
-			if !v.equals(&tc.input) {
+			if !reflect.DeepEqual(&v, &tc.input) {
 				t.Errorf("Unmarshalled value differs from expected value")
 			}
 		})
@@ -307,6 +308,98 @@ func Test_OptionalEnums(t *testing.T) {
 			}
 		})
 	}
+}
+
+type testVector[T any] struct {
+	input T
+	want  string
+}
+
+func testJSON[T any](t *testing.T, tests []testVector[T]) {
+	for i, tc := range tests {
+		t.Run(fmt.Sprintf("Marshal-%v", i), func(t *testing.T) {
+			b, err := json.Marshal(tc.input)
+			if err != nil {
+				t.Fatalf("Failed to marshal: %v", err)
+			}
+			got := string(b)
+			if got != tc.want {
+				t.Errorf("Expected JSON value %#v, got %#v", tc.want, got)
+			}
+		})
+		t.Run(fmt.Sprintf("Unmarshal-%v", i), func(t *testing.T) {
+			var v T
+			if err := json.Unmarshal([]byte(tc.want), &v); err != nil {
+				t.Fatalf("Failed to unmarshal: %v", err)
+			}
+			if !reflect.DeepEqual(&v, &tc.input) {
+				t.Errorf("Unmarshalled value differs from expected value")
+			}
+		})
+	}
+}
+
+func Test_SobjectRekeyRequest(t *testing.T) {
+	tests := []testVector[SobjectRekeyRequest]{
+		{
+			input: SobjectRekeyRequest{
+				Dest: SobjectRequest{
+					Name: Some("test1"),
+				},
+			},
+			want: `{"name":"test1"}`,
+		},
+		{
+			input: SobjectRekeyRequest{
+				Dest: SobjectRequest{
+					Name:  Some("test2"),
+					Value: Some([]byte{1, 2, 3, 4}),
+				},
+			},
+			want: `{"name":"test2","value":"AQIDBA=="}`,
+		},
+	}
+	testJSON(t, tests)
+}
+
+func Test_Account(t *testing.T) {
+	tests := []testVector[Account]{
+		{
+			input: Account{
+				AcctID:  "91678454-39cc-4ba6-a076-858596d9f447",
+				Name:    "test account 1",
+				Enabled: true,
+				Subscription: Subscription{
+					SubscriptionType: SubscriptionType{
+						OnPrem: Some(struct{}{}),
+					},
+				},
+			},
+			want: `{"acct_id":"91678454-39cc-4ba6-a076-858596d9f447","enabled":true,` +
+				`"mark_key_disable_when_deactivated":false,"name":"test account 1",` +
+				`"subscription":{"on_prem":{}}}`,
+		},
+		{
+			input: Account{
+				AcctID:  "91678454-39cc-4ba6-a076-858596d9f447",
+				Name:    "test account 1",
+				Enabled: true,
+				Subscription: Subscription{
+					SubscriptionType: SubscriptionType{
+						OnPrem: Some(struct{}{}),
+					},
+				},
+				ApprovalRequestSettings: ApprovalRequestSettings{
+					ApprovalRequestExpiry: Some(uint64(300)),
+					RetainExpiredRequests: Some(true),
+				},
+			},
+			want: `{"acct_id":"91678454-39cc-4ba6-a076-858596d9f447","approval_request_expiry":300,` +
+				`"enabled":true,"mark_key_disable_when_deactivated":false,"name":"test account 1",` +
+				`"retain_expired_requests":true,"subscription":{"on_prem":{}}}`,
+		},
+	}
+	testJSON(t, tests)
 }
 
 func (p1 *TlsConfig) equals(p2 *TlsConfig) bool {

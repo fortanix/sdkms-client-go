@@ -59,7 +59,7 @@ type Account struct {
 
 func (x Account) MarshalJSON() ([]byte, error) {
 	m := make(map[string]interface{})
-	{ // ApprovalRequestSettings
+	{ // x.ApprovalRequestSettings is flattened
 		b, err := json.Marshal(&x.ApprovalRequestSettings)
 		if err != nil {
 			return nil, err
@@ -69,46 +69,110 @@ func (x Account) MarshalJSON() ([]byte, error) {
 			return nil, err
 		}
 		for k, v := range f {
-			m[k] = &v
+			m[k] = v
 		}
 	}
-	m["acct_id"] = &x.AcctID
-	m["approval_policy"] = &x.ApprovalPolicy
-	m["auth_config"] = &x.AuthConfig
-	m["client_configurations"] = &x.ClientConfigurations
-	m["country"] = &x.Country
-	m["created_at"] = &x.CreatedAt
-	m["cryptographic_policy"] = &x.CryptographicPolicy
-	m["custom_logo"] = &x.CustomLogo
-	m["custom_metadata"] = &x.CustomMetadata
-	m["custom_metadata_attributes"] = &x.CustomMetadataAttributes
-	m["description"] = &x.Description
-	m["disabled_at"] = &x.DisabledAt
-	m["enabled"] = &x.Enabled
-	m["initial_purchase_at"] = &x.InitialPurchaseAt
-	m["key_history_policy"] = &x.KeyHistoryPolicy
-	m["key_metadata_policy"] = &x.KeyMetadataPolicy
-	m["log_bad_requests"] = &x.LogBadRequests
-	m["log_retention_days"] = &x.LogRetentionDays
-	m["logging_configs"] = &x.LoggingConfigs
-	m["mark_key_disable_when_deactivated"] = &x.MarkKeyDisableWhenDeactivated
-	m["max_app"] = &x.MaxApp
-	m["max_group"] = &x.MaxGroup
-	m["max_operation"] = &x.MaxOperation
-	m["max_plugin"] = &x.MaxPlugin
-	m["max_sobj"] = &x.MaxSobj
-	m["max_user"] = &x.MaxUser
-	m["name"] = &x.Name
-	m["notification_pref"] = &x.NotificationPref
-	m["organization"] = &x.Organization
-	m["parent_acct_id"] = &x.ParentAcctID
-	m["pending_subscription_change_request"] = &x.PendingSubscriptionChangeRequest
-	m["phone"] = &x.Phone
-	m["plugin_enabled"] = &x.PluginEnabled
-	m["subscription"] = &x.Subscription
-	m["totals"] = &x.Totals
-	m["trial_expires_at"] = &x.TrialExpiresAt
-	m["workspace_cse_config"] = &x.WorkspaceCseConfig
+	m["acct_id"] = x.AcctID
+	if x.ApprovalPolicy != nil {
+		m["approval_policy"] = x.ApprovalPolicy
+	}
+	if x.AuthConfig != nil {
+		m["auth_config"] = x.AuthConfig
+	}
+	if x.ClientConfigurations != nil {
+		m["client_configurations"] = x.ClientConfigurations
+	}
+	if x.Country != nil {
+		m["country"] = x.Country
+	}
+	if x.CreatedAt != nil {
+		m["created_at"] = x.CreatedAt
+	}
+	if x.CryptographicPolicy != nil {
+		m["cryptographic_policy"] = x.CryptographicPolicy
+	}
+	if x.CustomLogo != nil {
+		m["custom_logo"] = x.CustomLogo
+	}
+	if x.CustomMetadata != nil {
+		m["custom_metadata"] = x.CustomMetadata
+	}
+	if x.CustomMetadataAttributes != nil {
+		m["custom_metadata_attributes"] = x.CustomMetadataAttributes
+	}
+	if x.Description != nil {
+		m["description"] = x.Description
+	}
+	if x.DisabledAt != nil {
+		m["disabled_at"] = x.DisabledAt
+	}
+	m["enabled"] = x.Enabled
+	if x.InitialPurchaseAt != nil {
+		m["initial_purchase_at"] = x.InitialPurchaseAt
+	}
+	if x.KeyHistoryPolicy != nil {
+		m["key_history_policy"] = x.KeyHistoryPolicy
+	}
+	if x.KeyMetadataPolicy != nil {
+		m["key_metadata_policy"] = x.KeyMetadataPolicy
+	}
+	if x.LogBadRequests != nil {
+		m["log_bad_requests"] = x.LogBadRequests
+	}
+	if x.LogRetentionDays != nil {
+		m["log_retention_days"] = x.LogRetentionDays
+	}
+	if x.LoggingConfigs != nil {
+		m["logging_configs"] = x.LoggingConfigs
+	}
+	m["mark_key_disable_when_deactivated"] = x.MarkKeyDisableWhenDeactivated
+	if x.MaxApp != nil {
+		m["max_app"] = x.MaxApp
+	}
+	if x.MaxGroup != nil {
+		m["max_group"] = x.MaxGroup
+	}
+	if x.MaxOperation != nil {
+		m["max_operation"] = x.MaxOperation
+	}
+	if x.MaxPlugin != nil {
+		m["max_plugin"] = x.MaxPlugin
+	}
+	if x.MaxSobj != nil {
+		m["max_sobj"] = x.MaxSobj
+	}
+	if x.MaxUser != nil {
+		m["max_user"] = x.MaxUser
+	}
+	m["name"] = x.Name
+	if x.NotificationPref != nil {
+		m["notification_pref"] = x.NotificationPref
+	}
+	if x.Organization != nil {
+		m["organization"] = x.Organization
+	}
+	if x.ParentAcctID != nil {
+		m["parent_acct_id"] = x.ParentAcctID
+	}
+	if x.PendingSubscriptionChangeRequest != nil {
+		m["pending_subscription_change_request"] = x.PendingSubscriptionChangeRequest
+	}
+	if x.Phone != nil {
+		m["phone"] = x.Phone
+	}
+	if x.PluginEnabled != nil {
+		m["plugin_enabled"] = x.PluginEnabled
+	}
+	m["subscription"] = x.Subscription
+	if x.Totals != nil {
+		m["totals"] = x.Totals
+	}
+	if x.TrialExpiresAt != nil {
+		m["trial_expires_at"] = x.TrialExpiresAt
+	}
+	if x.WorkspaceCseConfig != nil {
+		m["workspace_cse_config"] = x.WorkspaceCseConfig
+	}
 	return json.Marshal(&m)
 }
 func (x *Account) UnmarshalJSON(data []byte) error {
@@ -249,7 +313,7 @@ type AccountRequest struct {
 
 func (x AccountRequest) MarshalJSON() ([]byte, error) {
 	m := make(map[string]interface{})
-	{ // ApprovalRequestSettings
+	{ // x.ApprovalRequestSettings is flattened
 		b, err := json.Marshal(&x.ApprovalRequestSettings)
 		if err != nil {
 			return nil, err
@@ -259,39 +323,99 @@ func (x AccountRequest) MarshalJSON() ([]byte, error) {
 			return nil, err
 		}
 		for k, v := range f {
-			m[k] = &v
+			m[k] = v
 		}
 	}
-	m["add_ldap"] = &x.AddLdap
-	m["add_logging_configs"] = &x.AddLoggingConfigs
-	m["approval_policy"] = &x.ApprovalPolicy
-	m["auth_config"] = &x.AuthConfig
-	m["client_configurations"] = &x.ClientConfigurations
-	m["country"] = &x.Country
-	m["cryptographic_policy"] = &x.CryptographicPolicy
-	m["custom_logo"] = &x.CustomLogo
-	m["custom_metadata"] = &x.CustomMetadata
-	m["custom_metadata_attributes"] = &x.CustomMetadataAttributes
-	m["del_ldap"] = &x.DelLdap
-	m["del_logging_configs"] = &x.DelLoggingConfigs
-	m["description"] = &x.Description
-	m["enabled"] = &x.Enabled
-	m["key_history_policy"] = &x.KeyHistoryPolicy
-	m["key_metadata_policy"] = &x.KeyMetadataPolicy
-	m["log_bad_requests"] = &x.LogBadRequests
-	m["log_retention_days"] = &x.LogRetentionDays
-	m["mark_key_disable_when_deactivated"] = &x.MarkKeyDisableWhenDeactivated
-	m["mod_ldap"] = &x.ModLdap
-	m["mod_logging_configs"] = &x.ModLoggingConfigs
-	m["name"] = &x.Name
-	m["notification_pref"] = &x.NotificationPref
-	m["organization"] = &x.Organization
-	m["parent_acct_id"] = &x.ParentAcctID
-	m["pending_subscription_change_request"] = &x.PendingSubscriptionChangeRequest
-	m["phone"] = &x.Phone
-	m["plugin_enabled"] = &x.PluginEnabled
-	m["subscription"] = &x.Subscription
-	m["workspace_cse_config"] = &x.WorkspaceCseConfig
+	if x.AddLdap != nil {
+		m["add_ldap"] = x.AddLdap
+	}
+	if x.AddLoggingConfigs != nil {
+		m["add_logging_configs"] = x.AddLoggingConfigs
+	}
+	if x.ApprovalPolicy != nil {
+		m["approval_policy"] = x.ApprovalPolicy
+	}
+	if x.AuthConfig != nil {
+		m["auth_config"] = x.AuthConfig
+	}
+	if x.ClientConfigurations != nil {
+		m["client_configurations"] = x.ClientConfigurations
+	}
+	if x.Country != nil {
+		m["country"] = x.Country
+	}
+	if x.CryptographicPolicy != nil {
+		m["cryptographic_policy"] = x.CryptographicPolicy
+	}
+	if x.CustomLogo != nil {
+		m["custom_logo"] = x.CustomLogo
+	}
+	if x.CustomMetadata != nil {
+		m["custom_metadata"] = x.CustomMetadata
+	}
+	if x.CustomMetadataAttributes != nil {
+		m["custom_metadata_attributes"] = x.CustomMetadataAttributes
+	}
+	if x.DelLdap != nil {
+		m["del_ldap"] = x.DelLdap
+	}
+	if x.DelLoggingConfigs != nil {
+		m["del_logging_configs"] = x.DelLoggingConfigs
+	}
+	if x.Description != nil {
+		m["description"] = x.Description
+	}
+	if x.Enabled != nil {
+		m["enabled"] = x.Enabled
+	}
+	if x.KeyHistoryPolicy != nil {
+		m["key_history_policy"] = x.KeyHistoryPolicy
+	}
+	if x.KeyMetadataPolicy != nil {
+		m["key_metadata_policy"] = x.KeyMetadataPolicy
+	}
+	if x.LogBadRequests != nil {
+		m["log_bad_requests"] = x.LogBadRequests
+	}
+	if x.LogRetentionDays != nil {
+		m["log_retention_days"] = x.LogRetentionDays
+	}
+	if x.MarkKeyDisableWhenDeactivated != nil {
+		m["mark_key_disable_when_deactivated"] = x.MarkKeyDisableWhenDeactivated
+	}
+	if x.ModLdap != nil {
+		m["mod_ldap"] = x.ModLdap
+	}
+	if x.ModLoggingConfigs != nil {
+		m["mod_logging_configs"] = x.ModLoggingConfigs
+	}
+	if x.Name != nil {
+		m["name"] = x.Name
+	}
+	if x.NotificationPref != nil {
+		m["notification_pref"] = x.NotificationPref
+	}
+	if x.Organization != nil {
+		m["organization"] = x.Organization
+	}
+	if x.ParentAcctID != nil {
+		m["parent_acct_id"] = x.ParentAcctID
+	}
+	if x.PendingSubscriptionChangeRequest != nil {
+		m["pending_subscription_change_request"] = x.PendingSubscriptionChangeRequest
+	}
+	if x.Phone != nil {
+		m["phone"] = x.Phone
+	}
+	if x.PluginEnabled != nil {
+		m["plugin_enabled"] = x.PluginEnabled
+	}
+	if x.Subscription != nil {
+		m["subscription"] = x.Subscription
+	}
+	if x.WorkspaceCseConfig != nil {
+		m["workspace_cse_config"] = x.WorkspaceCseConfig
+	}
 	return json.Marshal(&m)
 }
 func (x *AccountRequest) UnmarshalJSON(data []byte) error {
@@ -741,7 +865,7 @@ type Subscription struct {
 
 func (x Subscription) MarshalJSON() ([]byte, error) {
 	m := make(map[string]interface{})
-	{ // SubscriptionType
+	{ // x.SubscriptionType is flattened
 		b, err := json.Marshal(&x.SubscriptionType)
 		if err != nil {
 			return nil, err
@@ -751,11 +875,15 @@ func (x Subscription) MarshalJSON() ([]byte, error) {
 			return nil, err
 		}
 		for k, v := range f {
-			m[k] = &v
+			m[k] = v
 		}
 	}
-	m["memo"] = &x.Memo
-	m["experimental_features"] = &x.ExperimentalFeatures
+	if x.Memo != nil {
+		m["memo"] = x.Memo
+	}
+	if x.ExperimentalFeatures != nil {
+		m["experimental_features"] = x.ExperimentalFeatures
+	}
 	return json.Marshal(&m)
 }
 func (x *Subscription) UnmarshalJSON(data []byte) error {
