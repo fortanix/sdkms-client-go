@@ -26,7 +26,7 @@ type CopySobjectRequest struct {
 
 func (x CopySobjectRequest) MarshalJSON() ([]byte, error) {
 	m := make(map[string]interface{})
-	{ // Dest
+	{ // x.Dest is flattened
 		b, err := json.Marshal(&x.Dest)
 		if err != nil {
 			return nil, err
@@ -36,10 +36,10 @@ func (x CopySobjectRequest) MarshalJSON() ([]byte, error) {
 			return nil, err
 		}
 		for k, v := range f {
-			m[k] = &v
+			m[k] = v
 		}
 	}
-	m["key"] = &x.Key
+	m["key"] = x.Key
 	return json.Marshal(&m)
 }
 func (x *CopySobjectRequest) UnmarshalJSON(data []byte) error {
@@ -361,7 +361,7 @@ type SobjectRekeyRequest struct {
 
 func (x SobjectRekeyRequest) MarshalJSON() ([]byte, error) {
 	m := make(map[string]interface{})
-	{ // Dest
+	{ // x.Dest is flattened
 		b, err := json.Marshal(&x.Dest)
 		if err != nil {
 			return nil, err
@@ -371,10 +371,12 @@ func (x SobjectRekeyRequest) MarshalJSON() ([]byte, error) {
 			return nil, err
 		}
 		for k, v := range f {
-			m[k] = &v
+			m[k] = v
 		}
 	}
-	m["deactivate_rotated_key"] = &x.DeactivateRotatedKey
+	if x.DeactivateRotatedKey != nil {
+		m["deactivate_rotated_key"] = x.DeactivateRotatedKey
+	}
 	return json.Marshal(&m)
 }
 func (x *SobjectRekeyRequest) UnmarshalJSON(data []byte) error {

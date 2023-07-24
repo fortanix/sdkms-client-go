@@ -181,7 +181,7 @@ type Reviewer struct {
 
 func (x Reviewer) MarshalJSON() ([]byte, error) {
 	m := make(map[string]interface{})
-	{ // Entity
+	{ // x.Entity is flattened
 		b, err := json.Marshal(&x.Entity)
 		if err != nil {
 			return nil, err
@@ -191,11 +191,15 @@ func (x Reviewer) MarshalJSON() ([]byte, error) {
 			return nil, err
 		}
 		for k, v := range f {
-			m[k] = &v
+			m[k] = v
 		}
 	}
-	m["requires_password"] = &x.RequiresPassword
-	m["requires_2fa"] = &x.Requires2fa
+	if x.RequiresPassword != nil {
+		m["requires_password"] = x.RequiresPassword
+	}
+	if x.Requires2fa != nil {
+		m["requires_2fa"] = x.Requires2fa
+	}
 	return json.Marshal(&m)
 }
 func (x *Reviewer) UnmarshalJSON(data []byte) error {

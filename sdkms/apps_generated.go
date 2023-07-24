@@ -493,7 +493,7 @@ type TrustAnchor struct {
 
 func (x TrustAnchor) MarshalJSON() ([]byte, error) {
 	m := make(map[string]interface{})
-	{ // Subject
+	{ // x.Subject is flattened
 		b, err := json.Marshal(&x.Subject)
 		if err != nil {
 			return nil, err
@@ -503,10 +503,12 @@ func (x TrustAnchor) MarshalJSON() ([]byte, error) {
 			return nil, err
 		}
 		for k, v := range f {
-			m[k] = &v
+			m[k] = v
 		}
 	}
-	m["ca_certificate"] = &x.CaCertificate
+	if x.CaCertificate != nil {
+		m["ca_certificate"] = x.CaCertificate
+	}
 	return json.Marshal(&m)
 }
 func (x *TrustAnchor) UnmarshalJSON(data []byte) error {

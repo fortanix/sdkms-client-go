@@ -111,7 +111,7 @@ type LdapTestCredentials struct {
 
 func (x LdapTestCredentials) MarshalJSON() ([]byte, error) {
 	m := make(map[string]interface{})
-	{ // ID
+	{ // x.ID is flattened
 		b, err := json.Marshal(&x.ID)
 		if err != nil {
 			return nil, err
@@ -121,11 +121,13 @@ func (x LdapTestCredentials) MarshalJSON() ([]byte, error) {
 			return nil, err
 		}
 		for k, v := range f {
-			m[k] = &v
+			m[k] = v
 		}
 	}
-	m["password"] = &x.Password
-	m["account_role"] = &x.AccountRole
+	m["password"] = x.Password
+	if x.AccountRole != nil {
+		m["account_role"] = x.AccountRole
+	}
 	return json.Marshal(&m)
 }
 func (x *LdapTestCredentials) UnmarshalJSON(data []byte) error {

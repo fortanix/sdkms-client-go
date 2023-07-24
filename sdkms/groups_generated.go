@@ -171,7 +171,7 @@ type GroupApprovalPolicy struct {
 
 func (x GroupApprovalPolicy) MarshalJSON() ([]byte, error) {
 	m := make(map[string]interface{})
-	{ // Policy
+	{ // x.Policy is flattened
 		b, err := json.Marshal(&x.Policy)
 		if err != nil {
 			return nil, err
@@ -181,12 +181,18 @@ func (x GroupApprovalPolicy) MarshalJSON() ([]byte, error) {
 			return nil, err
 		}
 		for k, v := range f {
-			m[k] = &v
+			m[k] = v
 		}
 	}
-	m["protect_manage_operations"] = &x.ProtectManageOperations
-	m["protect_permissions"] = &x.ProtectPermissions
-	m["protect_crypto_operations"] = &x.ProtectCryptoOperations
+	if x.ProtectManageOperations != nil {
+		m["protect_manage_operations"] = x.ProtectManageOperations
+	}
+	if x.ProtectPermissions != nil {
+		m["protect_permissions"] = x.ProtectPermissions
+	}
+	if x.ProtectCryptoOperations != nil {
+		m["protect_crypto_operations"] = x.ProtectCryptoOperations
+	}
 	return json.Marshal(&m)
 }
 func (x *GroupApprovalPolicy) UnmarshalJSON(data []byte) error {
