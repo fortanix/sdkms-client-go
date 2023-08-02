@@ -52,7 +52,7 @@ func main() {
 	fmt.Printf("  LastName: %v\n", user.LastName)
 	fmt.Printf("  NewEmail: %v\n", user.NewEmail)
 	fmt.Printf("  U2fDevices: %v\n", user.U2fDevices)
-	fmt.Printf("  UserEmail: %v\n", *user.UserEmail)
+	fmt.Printf("  UserEmail: %v\n", user.UserEmail)
 	fmt.Printf("  UserID: %v\n", user.UserID)
 }
 

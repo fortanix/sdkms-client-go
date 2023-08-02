@@ -195,6 +195,7 @@ func (x GroupApprovalPolicy) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(&m)
 }
+
 func (x *GroupApprovalPolicy) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &x.Policy); err != nil {
 		return err

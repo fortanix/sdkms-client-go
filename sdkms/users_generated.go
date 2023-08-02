@@ -127,12 +127,6 @@ type MfaDelDeviceRequest struct {
 	Name string `json:"name"`
 }
 
-// A FIDO device that may be used for second factor authentication.
-type MfaDevice struct {
-	// Name given to the FIDO device.
-	Name string `json:"name"`
-}
-
 // Request to rename a FIDO device.
 type MfaRenameDeviceRequest struct {
 	// Old name of FIDO device.
@@ -205,7 +199,7 @@ type User struct {
 	NewEmail        *string     `json:"new_email,omitempty"`
 	SelfProvisioned *bool       `json:"self_provisioned,omitempty"`
 	U2fDevices      []MfaDevice `json:"u2f_devices"`
-	UserEmail       *string     `json:"user_email,omitempty"`
+	UserEmail       string      `json:"user_email"`
 	UserID          UUID        `json:"user_id"`
 }
 
