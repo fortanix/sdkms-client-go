@@ -504,6 +504,22 @@ const (
 	AppPermissionsMaskdecrypt
 	AppPermissionsAudit
 	AppPermissionsTransform
+	AppPermissionsCreateSobjects
+	AppPermissionsCopySobjects
+	AppPermissionsRotateSobjects
+	AppPermissionsActivateSobjects
+	AppPermissionsRevokeSobjects
+	AppPermissionsRevertSobjects
+	AppPermissionsMoveSobjects
+	AppPermissionsUpdateSobjectsProfile
+	AppPermissionsUpdateSobjectsEnabledState
+	AppPermissionsUpdateSobjectPolicies
+	AppPermissionsUpdateKeyOps
+	AppPermissionsDeleteKeyMaterial
+	AppPermissionsDeleteSobjects
+	AppPermissionsDestroySobjects
+	AppPermissionsRestoreExternalSobjects
+	AppPermissionsCalculateDigest
 )
 
 // MarshalJSON converts AppPermissions to an array of strings
@@ -554,6 +570,54 @@ func (x AppPermissions) MarshalJSON() ([]byte, error) {
 	if x&AppPermissionsTransform == AppPermissionsTransform {
 		s = append(s, "TRANSFORM")
 	}
+	if x&AppPermissionsCreateSobjects == AppPermissionsCreateSobjects {
+		s = append(s, "CREATE_SOBJECTS")
+	}
+	if x&AppPermissionsCopySobjects == AppPermissionsCopySobjects {
+		s = append(s, "COPY_SOBJECTS")
+	}
+	if x&AppPermissionsRotateSobjects == AppPermissionsRotateSobjects {
+		s = append(s, "ROTATE_SOBJECTS")
+	}
+	if x&AppPermissionsActivateSobjects == AppPermissionsActivateSobjects {
+		s = append(s, "ACTIVATE_SOBJECTS")
+	}
+	if x&AppPermissionsRevokeSobjects == AppPermissionsRevokeSobjects {
+		s = append(s, "REVOKE_SOBJECTS")
+	}
+	if x&AppPermissionsRevertSobjects == AppPermissionsRevertSobjects {
+		s = append(s, "REVERT_SOBJECTS")
+	}
+	if x&AppPermissionsMoveSobjects == AppPermissionsMoveSobjects {
+		s = append(s, "MOVE_SOBJECTS")
+	}
+	if x&AppPermissionsUpdateSobjectsProfile == AppPermissionsUpdateSobjectsProfile {
+		s = append(s, "UPDATE_SOBJECTS_PROFILE")
+	}
+	if x&AppPermissionsUpdateSobjectsEnabledState == AppPermissionsUpdateSobjectsEnabledState {
+		s = append(s, "UPDATE_SOBJECTS_ENABLED_STATE")
+	}
+	if x&AppPermissionsUpdateSobjectPolicies == AppPermissionsUpdateSobjectPolicies {
+		s = append(s, "UPDATE_SOBJECT_POLICIES")
+	}
+	if x&AppPermissionsUpdateKeyOps == AppPermissionsUpdateKeyOps {
+		s = append(s, "UPDATE_KEY_OPS")
+	}
+	if x&AppPermissionsDeleteKeyMaterial == AppPermissionsDeleteKeyMaterial {
+		s = append(s, "DELETE_KEY_MATERIAL")
+	}
+	if x&AppPermissionsDeleteSobjects == AppPermissionsDeleteSobjects {
+		s = append(s, "DELETE_SOBJECTS")
+	}
+	if x&AppPermissionsDestroySobjects == AppPermissionsDestroySobjects {
+		s = append(s, "DESTROY_SOBJECTS")
+	}
+	if x&AppPermissionsRestoreExternalSobjects == AppPermissionsRestoreExternalSobjects {
+		s = append(s, "RESTORE_EXTERNAL_SOBJECTS")
+	}
+	if x&AppPermissionsCalculateDigest == AppPermissionsCalculateDigest {
+		s = append(s, "CALCULATE_DIGEST")
+	}
 	return json.Marshal(s)
 }
 
@@ -596,6 +660,38 @@ func (x *AppPermissions) UnmarshalJSON(data []byte) error {
 			*x = *x | AppPermissionsAudit
 		case "TRANSFORM":
 			*x = *x | AppPermissionsTransform
+		case "CREATE_SOBJECTS":
+			*x = *x | AppPermissionsCreateSobjects
+		case "COPY_SOBJECTS":
+			*x = *x | AppPermissionsCopySobjects
+		case "ROTATE_SOBJECTS":
+			*x = *x | AppPermissionsRotateSobjects
+		case "ACTIVATE_SOBJECTS":
+			*x = *x | AppPermissionsActivateSobjects
+		case "REVOKE_SOBJECTS":
+			*x = *x | AppPermissionsRevokeSobjects
+		case "REVERT_SOBJECTS":
+			*x = *x | AppPermissionsRevertSobjects
+		case "MOVE_SOBJECTS":
+			*x = *x | AppPermissionsMoveSobjects
+		case "UPDATE_SOBJECTS_PROFILE":
+			*x = *x | AppPermissionsUpdateSobjectsProfile
+		case "UPDATE_SOBJECTS_ENABLED_STATE":
+			*x = *x | AppPermissionsUpdateSobjectsEnabledState
+		case "UPDATE_SOBJECT_POLICIES":
+			*x = *x | AppPermissionsUpdateSobjectPolicies
+		case "UPDATE_KEY_OPS":
+			*x = *x | AppPermissionsUpdateKeyOps
+		case "DELETE_KEY_MATERIAL":
+			*x = *x | AppPermissionsDeleteKeyMaterial
+		case "DELETE_SOBJECTS":
+			*x = *x | AppPermissionsDeleteSobjects
+		case "DESTROY_SOBJECTS":
+			*x = *x | AppPermissionsDestroySobjects
+		case "RESTORE_EXTERNAL_SOBJECTS":
+			*x = *x | AppPermissionsRestoreExternalSobjects
+		case "CALCULATE_DIGEST":
+			*x = *x | AppPermissionsCalculateDigest
 		}
 	}
 	return nil
@@ -2066,7 +2162,8 @@ const (
 	// Google personnel can make this type of access for the following reasons:
 	// - To investigate and confirm that a suspected service outage doesn't affect the customer.
 	// - To ensure backup and recovery from outages and system failures.
-	GoogleAccessReasonGoogleResponseToProductionAlert GoogleAccessReason = "GOOGLE_RESPONSE_TO_PRODUCTION_ALERT"
+	GoogleAccessReasonGoogleResponseToProductionAlert     GoogleAccessReason = "GOOGLE_RESPONSE_TO_PRODUCTION_ALERT"
+	GoogleAccessReasonCustomerAuthorizedWorkflowServicing GoogleAccessReason = "CUSTOMER_AUTHORIZED_WORKFLOW_SERVICING"
 )
 
 // Policy specifying acceptable access reasons

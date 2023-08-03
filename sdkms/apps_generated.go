@@ -103,6 +103,8 @@ type AppCredential struct {
 type AppCredentialGoogleServiceAccount struct {
 	// Policy specifying acceptable access reasons.
 	AccessReasonPolicy *GoogleAccessReasonPolicy `json:"access_reason_policy,omitempty"`
+	// Mapping for all groups an application is part of and the Gcp specific permissions it has within each of those groups.
+	Groups *map[UUID]GcpAppPermissions `json:"groups,omitempty"`
 }
 
 // Authentication using a signed JWT directly as a bearer token.
@@ -330,6 +332,44 @@ func (x AppSort) urlEncode(v map[string][]string) error {
 		v["sort"] = []string{"app_id" + string(x.ByAppID.Order)}
 		if x.ByAppID.Start != nil {
 			v["start"] = []string{fmt.Sprintf("%v", *x.ByAppID.Start)}
+		}
+	}
+	return nil
+}
+
+type GcpAppPermissions uint64
+
+// List of supported GcpAppPermissions values
+const (
+	GcpAppPermissionsCryptoSpaceGetInfo GcpAppPermissions = 1 << iota
+	GcpAppPermissionsCryptoSpaceGetPublicKey
+)
+
+// MarshalJSON converts GcpAppPermissions to an array of strings
+func (x GcpAppPermissions) MarshalJSON() ([]byte, error) {
+	s := make([]string, 0)
+	if x&GcpAppPermissionsCryptoSpaceGetInfo == GcpAppPermissionsCryptoSpaceGetInfo {
+		s = append(s, "CRYPTO_SPACE_GET_INFO")
+	}
+	if x&GcpAppPermissionsCryptoSpaceGetPublicKey == GcpAppPermissionsCryptoSpaceGetPublicKey {
+		s = append(s, "CRYPTO_SPACE_GET_PUBLIC_KEY")
+	}
+	return json.Marshal(s)
+}
+
+// UnmarshalJSON converts array of strings to GcpAppPermissions
+func (x *GcpAppPermissions) UnmarshalJSON(data []byte) error {
+	*x = 0
+	var s []string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	for _, v := range s {
+		switch v {
+		case "CRYPTO_SPACE_GET_INFO":
+			*x = *x | GcpAppPermissionsCryptoSpaceGetInfo
+		case "CRYPTO_SPACE_GET_PUBLIC_KEY":
+			*x = *x | GcpAppPermissionsCryptoSpaceGetPublicKey
 		}
 	}
 	return nil

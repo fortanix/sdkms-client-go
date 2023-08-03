@@ -924,6 +924,7 @@ const (
 	SubscriptionFeaturesAwsbyok
 	SubscriptionFeaturesAzurebyok
 	SubscriptionFeaturesGcpbyok
+	SubscriptionFeaturesGcpekmcontrolplane
 )
 
 // MarshalJSON converts SubscriptionFeatures to an array of strings
@@ -943,6 +944,9 @@ func (x SubscriptionFeatures) MarshalJSON() ([]byte, error) {
 	}
 	if x&SubscriptionFeaturesGcpbyok == SubscriptionFeaturesGcpbyok {
 		s = append(s, "GCPBYOK")
+	}
+	if x&SubscriptionFeaturesGcpekmcontrolplane == SubscriptionFeaturesGcpekmcontrolplane {
+		s = append(s, "GCPEKMCONTROLPLANE")
 	}
 	return json.Marshal(s)
 }
@@ -966,6 +970,8 @@ func (x *SubscriptionFeatures) UnmarshalJSON(data []byte) error {
 			*x = *x | SubscriptionFeaturesAzurebyok
 		case "GCPBYOK":
 			*x = *x | SubscriptionFeaturesGcpbyok
+		case "GCPEKMCONTROLPLANE":
+			*x = *x | SubscriptionFeaturesGcpekmcontrolplane
 		}
 	}
 	return nil
