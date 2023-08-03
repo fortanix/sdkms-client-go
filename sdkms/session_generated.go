@@ -52,13 +52,14 @@ type AuthMethodSamlPost struct {
 	IdpID        Blob   `json:"idp_id"`
 }
 type AuthMethodOauthAuthCodeGrant struct {
-	Name             string `json:"name"`
-	IconURL          string `json:"icon_url"`
-	AuthorizationURL string `json:"authorization_url"`
-	ClientID         string `json:"client_id"`
-	RedirectURI      string `json:"redirect_uri"`
-	State            string `json:"state"`
-	IdpID            Blob   `json:"idp_id"`
+	Name             string                        `json:"name"`
+	IconURL          string                        `json:"icon_url"`
+	AuthorizationURL string                        `json:"authorization_url"`
+	ClientID         string                        `json:"client_id"`
+	RedirectURI      string                        `json:"redirect_uri"`
+	State            string                        `json:"state"`
+	IdpID            Blob                          `json:"idp_id"`
+	AuthParams       OauthAuthenticationParameters `json:"auth_params"`
 }
 type AuthMethodLdapPassword struct {
 	Name    string `json:"name"`
@@ -354,6 +355,7 @@ type AuthResponse struct {
 	// session and contains response that should be used with
 	// `navigator.credentials.get()`
 	Fido2AssertionOptions *PublicKeyCredentialRequestOptions `json:"fido2_assertion_options,omitempty"`
+	AllowedMfaMethods     *[]MfaAuthMethod                   `json:"allowed_mfa_methods,omitempty"`
 }
 
 // Temporary credentials to be used for AWS KMS.
@@ -369,6 +371,39 @@ type Config2faAuthRequest struct {
 }
 
 type Config2faAuthResponse struct {
+}
+
+type MfaAuthMethod struct {
+	Fido2 *MfaAuthMethodFido2
+}
+type MfaAuthMethodFido2 struct {
+	Challenge      PublicKeyCredentialRequestOptions `json:"challenge"`
+	ChallengeToken Blob                              `json:"challenge_token"`
+	MfaDevices     []MfaDevice                       `json:"mfa_devices"`
+}
+
+func (x MfaAuthMethod) MarshalJSON() ([]byte, error) {
+	if err := checkEnumPointers(
+		"MfaAuthMethod",
+		[]bool{x.Fido2 != nil}); err != nil {
+		return nil, err
+	}
+	var obj struct {
+		Fido2 *MfaAuthMethodFido2 `json:"Fido2,omitempty"`
+	}
+	obj.Fido2 = x.Fido2
+	return json.Marshal(obj)
+}
+func (x *MfaAuthMethod) UnmarshalJSON(data []byte) error {
+	x.Fido2 = nil
+	var obj struct {
+		Fido2 *MfaAuthMethodFido2 `json:"Fido2,omitempty"`
+	}
+	if err := json.Unmarshal(data, &obj); err != nil {
+		return err
+	}
+	x.Fido2 = obj.Fido2
+	return nil
 }
 
 type OauthCodeData struct {

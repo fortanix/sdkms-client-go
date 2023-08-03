@@ -145,14 +145,17 @@ type Group struct {
 	CustodianPolicy      *QuorumPolicy        `json:"custodian_policy,omitempty"`
 	CustomMetadata       *map[string]string   `json:"custom_metadata,omitempty"`
 	Description          *string              `json:"description,omitempty"`
-	GroupID              UUID                 `json:"group_id"`
-	Hmg                  *map[UUID]HmgConfig  `json:"hmg,omitempty"`
-	HmgRedundancy        *HmgRedundancyScheme `json:"hmg_redundancy,omitempty"`
-	HmgSegregation       *bool                `json:"hmg_segregation,omitempty"`
-	HmgSync              *bool                `json:"hmg_sync,omitempty"`
-	KeyHistoryPolicy     *KeyHistoryPolicy    `json:"key_history_policy,omitempty"`
-	KeyMetadataPolicy    *KeyMetadataPolicy   `json:"key_metadata_policy,omitempty"`
-	Name                 string               `json:"name"`
+	// Key Access Justifications for GCP EKM.
+	// For more details: https://cloud.google.com/cloud-provider-access-management/key-access-justifications/docs/overview
+	GoogleAccessReasonPolicy *GoogleAccessReasonPolicy `json:"google_access_reason_policy,omitempty"`
+	GroupID                  UUID                      `json:"group_id"`
+	Hmg                      *map[UUID]HmgConfig       `json:"hmg,omitempty"`
+	HmgRedundancy            *HmgRedundancyScheme      `json:"hmg_redundancy,omitempty"`
+	HmgSegregation           *bool                     `json:"hmg_segregation,omitempty"`
+	HmgSync                  *bool                     `json:"hmg_sync,omitempty"`
+	KeyHistoryPolicy         *KeyHistoryPolicy         `json:"key_history_policy,omitempty"`
+	KeyMetadataPolicy        *KeyMetadataPolicy        `json:"key_metadata_policy,omitempty"`
+	Name                     string                    `json:"name"`
 	// Name of an AES key from another group. The key will be used to encrypt the key material of all keys in this group
 	WrappingKeyName *WrappingKeyName `json:"wrapping_key_name,omitempty"`
 }
@@ -224,13 +227,16 @@ type GroupRequest struct {
 	CustomMetadata       *map[string]string              `json:"custom_metadata,omitempty"`
 	DelHmg               *[]UUID                         `json:"del_hmg,omitempty"`
 	Description          *string                         `json:"description,omitempty"`
-	HmgRedundancy        *HmgRedundancyScheme            `json:"hmg_redundancy,omitempty"`
-	HmgSegregation       *bool                           `json:"hmg_segregation,omitempty"`
-	HmgSync              *bool                           `json:"hmg_sync,omitempty"`
-	KeyHistoryPolicy     *Removable[KeyHistoryPolicy]    `json:"key_history_policy,omitempty"`
-	KeyMetadataPolicy    *Removable[KeyMetadataPolicy]   `json:"key_metadata_policy,omitempty"`
-	ModHmg               *map[UUID]HmgConfig             `json:"mod_hmg,omitempty"`
-	Name                 *string                         `json:"name,omitempty"`
+	// Key Access Justifications for GCP EKM.
+	// For more details: https://cloud.google.com/cloud-provider-access-management/key-access-justifications/docs/overview
+	GoogleAccessReasonPolicy *Removable[GoogleAccessReasonPolicy] `json:"google_access_reason_policy,omitempty"`
+	HmgRedundancy            *HmgRedundancyScheme                 `json:"hmg_redundancy,omitempty"`
+	HmgSegregation           *bool                                `json:"hmg_segregation,omitempty"`
+	HmgSync                  *bool                                `json:"hmg_sync,omitempty"`
+	KeyHistoryPolicy         *Removable[KeyHistoryPolicy]         `json:"key_history_policy,omitempty"`
+	KeyMetadataPolicy        *Removable[KeyMetadataPolicy]        `json:"key_metadata_policy,omitempty"`
+	ModHmg                   *map[UUID]HmgConfig                  `json:"mod_hmg,omitempty"`
+	Name                     *string                              `json:"name,omitempty"`
 	// Name of an AES key from another group. The key will be used to encrypt the key material of all keys in this group
 	WrappingKeyName *WrappingKeyName `json:"wrapping_key_name,omitempty"`
 }

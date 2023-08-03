@@ -504,6 +504,22 @@ const (
 	AppPermissionsMaskdecrypt
 	AppPermissionsAudit
 	AppPermissionsTransform
+	AppPermissionsCreateSobjects
+	AppPermissionsCopySobjects
+	AppPermissionsRotateSobjects
+	AppPermissionsActivateSobjects
+	AppPermissionsRevokeSobjects
+	AppPermissionsRevertSobjects
+	AppPermissionsMoveSobjects
+	AppPermissionsUpdateSobjectsProfile
+	AppPermissionsUpdateSobjectsEnabledState
+	AppPermissionsUpdateSobjectPolicies
+	AppPermissionsUpdateKeyOps
+	AppPermissionsDeleteKeyMaterial
+	AppPermissionsDeleteSobjects
+	AppPermissionsDestroySobjects
+	AppPermissionsRestoreExternalSobjects
+	AppPermissionsCalculateDigest
 )
 
 // MarshalJSON converts AppPermissions to an array of strings
@@ -554,6 +570,54 @@ func (x AppPermissions) MarshalJSON() ([]byte, error) {
 	if x&AppPermissionsTransform == AppPermissionsTransform {
 		s = append(s, "TRANSFORM")
 	}
+	if x&AppPermissionsCreateSobjects == AppPermissionsCreateSobjects {
+		s = append(s, "CREATE_SOBJECTS")
+	}
+	if x&AppPermissionsCopySobjects == AppPermissionsCopySobjects {
+		s = append(s, "COPY_SOBJECTS")
+	}
+	if x&AppPermissionsRotateSobjects == AppPermissionsRotateSobjects {
+		s = append(s, "ROTATE_SOBJECTS")
+	}
+	if x&AppPermissionsActivateSobjects == AppPermissionsActivateSobjects {
+		s = append(s, "ACTIVATE_SOBJECTS")
+	}
+	if x&AppPermissionsRevokeSobjects == AppPermissionsRevokeSobjects {
+		s = append(s, "REVOKE_SOBJECTS")
+	}
+	if x&AppPermissionsRevertSobjects == AppPermissionsRevertSobjects {
+		s = append(s, "REVERT_SOBJECTS")
+	}
+	if x&AppPermissionsMoveSobjects == AppPermissionsMoveSobjects {
+		s = append(s, "MOVE_SOBJECTS")
+	}
+	if x&AppPermissionsUpdateSobjectsProfile == AppPermissionsUpdateSobjectsProfile {
+		s = append(s, "UPDATE_SOBJECTS_PROFILE")
+	}
+	if x&AppPermissionsUpdateSobjectsEnabledState == AppPermissionsUpdateSobjectsEnabledState {
+		s = append(s, "UPDATE_SOBJECTS_ENABLED_STATE")
+	}
+	if x&AppPermissionsUpdateSobjectPolicies == AppPermissionsUpdateSobjectPolicies {
+		s = append(s, "UPDATE_SOBJECT_POLICIES")
+	}
+	if x&AppPermissionsUpdateKeyOps == AppPermissionsUpdateKeyOps {
+		s = append(s, "UPDATE_KEY_OPS")
+	}
+	if x&AppPermissionsDeleteKeyMaterial == AppPermissionsDeleteKeyMaterial {
+		s = append(s, "DELETE_KEY_MATERIAL")
+	}
+	if x&AppPermissionsDeleteSobjects == AppPermissionsDeleteSobjects {
+		s = append(s, "DELETE_SOBJECTS")
+	}
+	if x&AppPermissionsDestroySobjects == AppPermissionsDestroySobjects {
+		s = append(s, "DESTROY_SOBJECTS")
+	}
+	if x&AppPermissionsRestoreExternalSobjects == AppPermissionsRestoreExternalSobjects {
+		s = append(s, "RESTORE_EXTERNAL_SOBJECTS")
+	}
+	if x&AppPermissionsCalculateDigest == AppPermissionsCalculateDigest {
+		s = append(s, "CALCULATE_DIGEST")
+	}
 	return json.Marshal(s)
 }
 
@@ -596,6 +660,38 @@ func (x *AppPermissions) UnmarshalJSON(data []byte) error {
 			*x = *x | AppPermissionsAudit
 		case "TRANSFORM":
 			*x = *x | AppPermissionsTransform
+		case "CREATE_SOBJECTS":
+			*x = *x | AppPermissionsCreateSobjects
+		case "COPY_SOBJECTS":
+			*x = *x | AppPermissionsCopySobjects
+		case "ROTATE_SOBJECTS":
+			*x = *x | AppPermissionsRotateSobjects
+		case "ACTIVATE_SOBJECTS":
+			*x = *x | AppPermissionsActivateSobjects
+		case "REVOKE_SOBJECTS":
+			*x = *x | AppPermissionsRevokeSobjects
+		case "REVERT_SOBJECTS":
+			*x = *x | AppPermissionsRevertSobjects
+		case "MOVE_SOBJECTS":
+			*x = *x | AppPermissionsMoveSobjects
+		case "UPDATE_SOBJECTS_PROFILE":
+			*x = *x | AppPermissionsUpdateSobjectsProfile
+		case "UPDATE_SOBJECTS_ENABLED_STATE":
+			*x = *x | AppPermissionsUpdateSobjectsEnabledState
+		case "UPDATE_SOBJECT_POLICIES":
+			*x = *x | AppPermissionsUpdateSobjectPolicies
+		case "UPDATE_KEY_OPS":
+			*x = *x | AppPermissionsUpdateKeyOps
+		case "DELETE_KEY_MATERIAL":
+			*x = *x | AppPermissionsDeleteKeyMaterial
+		case "DELETE_SOBJECTS":
+			*x = *x | AppPermissionsDeleteSobjects
+		case "DESTROY_SOBJECTS":
+			*x = *x | AppPermissionsDestroySobjects
+		case "RESTORE_EXTERNAL_SOBJECTS":
+			*x = *x | AppPermissionsRestoreExternalSobjects
+		case "CALCULATE_DIGEST":
+			*x = *x | AppPermissionsCalculateDigest
 		}
 	}
 	return nil
@@ -1032,20 +1128,17 @@ type CommonClientConfig struct {
 
 // `CipherMode` or `RsaEncryptionPadding`, depending on the encryption algorithm.
 type CryptMode struct {
-	// Block cipher mode of crypto operation
+	// Block cipher mode of operation
 	Symmetric *CipherMode
-	// RSA(with padding) mode of crypto operation
+	// RSA padding scheme
 	Rsa *RsaEncryptionPadding
-	// PKCS8 mode of crypto operation
-	Pkcs8Mode *Pkcs8Mode
 }
 
 func (x CryptMode) MarshalJSON() ([]byte, error) {
 	if err := checkEnumPointers(
 		"CryptMode",
 		[]bool{x.Symmetric != nil,
-			x.Rsa != nil,
-			x.Pkcs8Mode != nil}); err != nil {
+			x.Rsa != nil}); err != nil {
 		return nil, err
 	}
 	if x.Symmetric != nil {
@@ -1054,15 +1147,11 @@ func (x CryptMode) MarshalJSON() ([]byte, error) {
 	if x.Rsa != nil {
 		return json.Marshal(x.Rsa)
 	}
-	if x.Pkcs8Mode != nil {
-		return json.Marshal(x.Pkcs8Mode)
-	}
 	panic("unreachable")
 }
 func (x *CryptMode) UnmarshalJSON(data []byte) error {
 	x.Symmetric = nil
 	x.Rsa = nil
-	x.Pkcs8Mode = nil
 	var symmetric CipherMode
 	if err := json.Unmarshal(data, &symmetric); err == nil {
 		x.Symmetric = &symmetric
@@ -1071,11 +1160,6 @@ func (x *CryptMode) UnmarshalJSON(data []byte) error {
 	var rsa RsaEncryptionPadding
 	if err := json.Unmarshal(data, &rsa); err == nil {
 		x.Rsa = &rsa
-		return nil
-	}
-	var pkcs8Mode Pkcs8Mode
-	if err := json.Unmarshal(data, &pkcs8Mode); err == nil {
-		x.Pkcs8Mode = &pkcs8Mode
 		return nil
 	}
 	return errors.Errorf("not a valid CryptMode")
@@ -1370,34 +1454,50 @@ func (x *Fido2MfaChallengeResponse) UnmarshalJSON(data []byte) error {
 	return errors.Errorf("not a valid Fido2MfaChallengeResponse")
 }
 
-// The character set to use for an encrypted portion of a complex tokenization data type.
+// The alphabet to use for an encrypted portion of a complex tokenization data type.
 // Characters should be specified as a list of pairs, where each pair [a, b] represents the
-// range of characters from a to b, with both bounds being inclusive. A single character can
-// be specified as [c, c].
+// range of Unicode code points from a to b, with both bounds being inclusive. A single
+// code point can be specified as [c, c].
 //
 // Normally, each character is assigned a numeric value for FF1. The first character is
 // assigned a value of 0, and subsequent characters are assigned values of 1, 2, and so on,
-// up to the size of the character set. Note that the order of the ranges matters; characters
+// up to the size of the alphabet. Note that the order of the ranges matters; characters
 // appearing in later ranges are assigned higher numerical values compared to earlier
-// characters. For instance, in the character set [['a', 'z'], ['0', '9']], the digits '0' to
+// characters. For instance, in the FpeCharSet [['a', 'z'], ['0', '9']], the digits '0' to
 // '9' are assigned values from 26 to 35, since they are listed after the 'a' to 'z' range.
 //
 // In any case, ranges should not overlap with each other, and should not contain surrogate
-// codepoints.
+// code points.
 type FpeCharSet = [][2]Char
 
 // Structure of a compound portion of a complex tokenization data type, itself composed of
 // smaller parts.
 type FpeCompoundPart struct {
 	// Represents an OR of multiple structures.
+	//
+	// Implementation note: an OR is _not_ a union of `FpeDataPart`s. Rather, when parsing
+	// the input, the backend will simply choose the first subpart that matches the current
+	// portion of the input, and tokenize/detokenize accordingly. If that choice results in
+	// an invalid parse of the rest of the input, the backend ***will not backtrack*** and
+	// will simply return with an error.
 	Or *FpeCompoundPartOr
 	// Represents a concatenation of multiple structures (in a particular order).
 	Concat *FpeCompoundPartConcat
 	// Indicates a part that is possibly repeated multiple times.
+	//
+	// Implementation note: the backend parser is locally "greedy" and will attempt to match
+	// as many repetitions as possible. If this later results in an invalid parse of the rest
+	// of the input, the backend ***will not backtrack*** and will simply return with an error.
 	Multiple *FpeCompoundPartMultiple
 }
 
 // Represents an OR of multiple structures.
+//
+// Implementation note: an OR is _not_ a union of `FpeDataPart`s. Rather, when parsing
+// the input, the backend will simply choose the first subpart that matches the current
+// portion of the input, and tokenize/detokenize accordingly. If that choice results in
+// an invalid parse of the rest of the input, the backend ***will not backtrack*** and
+// will simply return with an error.
 type FpeCompoundPartOr struct {
 	// The actual subparts that make up this compound part.
 	Or []FpeDataPart `json:"or"`
@@ -1434,12 +1534,18 @@ type FpeCompoundPartConcat struct {
 }
 
 // Indicates a part that is possibly repeated multiple times.
+//
+// Implementation note: the backend parser is locally "greedy" and will attempt to match
+// as many repetitions as possible. If this later results in an invalid parse of the rest
+// of the input, the backend ***will not backtrack*** and will simply return with an error.
 type FpeCompoundPartMultiple struct {
 	// The subpart that may be repeated.
 	Multiple *FpeDataPart `json:"multiple"`
-	// The minimum number of times the subpart can be repeated.
+	// The minimum number of times the subpart may occur. (A value of 1 marks a single
+	// occurrence.)
 	MinRepetitions *uint `json:"min_repetitions,omitempty"`
-	// The maximum number of times the subpart can be repeated.
+	// The maximum number of times the subpart may occur. (A value of 1 marks a single
+	// occurrence.)
 	MaxRepetitions *uint `json:"max_repetitions,omitempty"`
 	// Additional constraints that the token type must satisfy.
 	Constraints *FpeConstraints `json:"constraints,omitempty"`
@@ -1500,19 +1606,29 @@ func (x *FpeCompoundPart) UnmarshalJSON(data []byte) error {
 
 // Constraints on a portion of a complex tokenization data type.
 type FpeConstraints struct {
-	// Whether the token part should satisfy the Luhn checksum. It is an error to apply this
-	// constraint to non-numeric parts, or for an encrypted part to be under more than one
-	// Luhn check constraint. Also, if an encrypted part has a Luhn check constraint applied
-	// to it and may contain at least one digit that is not preserved, it must not specify
-	// any other constraints.
+	// Whether the token part contains a checksum that satisfies the Luhn formula. It is an
+	// error to apply this constraint to non-numeric parts, or to have an encrypted part be
+	// under more than one Luhn check constraint. Also, if an encrypted part has a Luhn check
+	// constraint applied to it and may contain at least one digit that is not preserved, it
+	// must not specify any other constraints.
 	LuhnCheck *bool `json:"luhn_check,omitempty"`
-	// Number that the token part should be greater than. This constraint can only be
-	// specified on (non-compound) numeric encrypted parts guaranteed to preserve either
-	// everything or nothing at all.
+	// Number that the token part should be greater than.
+	//
+	// This constraint can only be specified on (non-compound) numeric encrypted parts
+	// guaranteed to preserve either everything or nothing at all. (For example, if an
+	// encrypted part consists of 5 to 10 digits, a `preserve` list that covers only the
+	// first five digits is not guaranteed to preserve everything, because if the input
+	// happens to be six or more digits long, there will be at least one digit that
+	// remains unpreserved.)
 	NumGt *uint `json:"num_gt,omitempty"`
-	// Number that the token part should be smaller than. This constraint can only be
-	// specified on (non-compound) numeric encrypted parts guaranteed to preserve either
-	// everything or nothing at all.
+	// Number that the token part should be smaller than.
+	//
+	// This constraint can only be specified on (non-compound) numeric encrypted parts
+	// guaranteed to preserve either everything or nothing at all. (For example, if an
+	// encrypted part consists of 5 to 10 digits, a `preserve` list that covers only the
+	// first five digits is not guaranteed to preserve everything, because if the input
+	// happens to be six or more digits long, there will be at least one digit that
+	// remains unpreserved.)
 	NumLt *uint `json:"num_lt,omitempty"`
 	// Numbers that the token part should not be equal to. It is an error to apply this
 	// constraint to non-numeric parts.
@@ -1575,12 +1691,29 @@ func (x *FpeConstraintsApplicability) UnmarshalJSON(data []byte) error {
 
 // Structure for specifying (part of) a complex tokenization data type.
 type FpeDataPart struct {
+	// A portion of a data type consisting of characters that belong to a particular
+	// alphabet (e.g., letters, numbers, etc.).
 	Encrypted *FpeEncryptedPart
-	Literal   *FpeDataPartLiteral
-	Compound  *FpeCompoundPart
+	// A section of the data type that is not to be tokenized (e.g., a delimiter).
+	//
+	// Unlike preserved characters, literal characters are not used for FF1 tweaks.
+	Literal *FpeDataPartLiteral
+	// A portion of a data type that consists of several smaller portions (e.g., an
+	// `Encrypted` part followed by a `Literal`).
+	Compound *FpeCompoundPart
 }
+
+// A section of the data type that is not to be tokenized (e.g., a delimiter).
+//
+// Unlike preserved characters, literal characters are not used for FF1 tweaks.
 type FpeDataPartLiteral struct {
 	// The list of possible strings that make up this literal portion of the token.
+	// For example, if a delimiter can either be a space or a dash, the list would
+	// be `[" ", "-"]`.
+	//
+	// Implementation note: the backend will pick the first choice that matches when
+	// when parsing the input. If this results in an invalid parse of the rest of the
+	// input, the backend ***will not backtrack*** and will simply return with an error.
 	Literal []string `json:"literal"`
 }
 
@@ -1710,6 +1843,7 @@ type FpeDateConstraint struct {
 	// - a Day part, a Month part, and a Year part
 	// (with this constraint applying to those subparts). Each of the three choices above
 	// corresponds to a particular FpeDate variant; using the wrong variant is an error.
+	//
 	// Furthermore, the individual Month, Day, and/or Year parts that comprise the date cannot
 	// appear under Or or Multiple compound part descendants of the overall Date part (i.e.,
 	// when applying the Date constraint, the "paths" from the Date part to the Month, Day,
@@ -1720,9 +1854,15 @@ type FpeDateConstraint struct {
 	// It is an error to "share" Day, Month, or Year parts across multiple dates.
 	Date *FpeDate
 	// Used to indicate that a token part represents a month, day, or year (either as part of a
-	// date, or independently). The part should be a numeric encrypted part that is guaranteed
-	// to either preserve all of its digits or preserve none of them, and cannot be involved in
-	// any Luhn-check constraints.
+	// date, or independently).
+	//
+	// The token part must be a (non-compound) numeric encrypted part guaranteed to preserve either
+	// everything or nothing at all. (For example, if an encrypted part consists of 5 to 10 digits,
+	// a `preserve` list that covers only the first five digits is not guaranteed to preserve
+	// everything, because if the input happens to be six or more digits long, there will be at
+	// least one digit that remains unpreserved.)
+	//
+	// Additionally, the token part cannot be involved in any Luhn-check constraints.
 	DatePart *FpeDatePart
 }
 
@@ -1763,12 +1903,12 @@ type FpeDatePart string
 
 // List of supported FpeDatePart values
 const (
-	// Used to indicate that a token part represents a month. The part should be a number from 1
+	// Used to indicate that a token part represents a month. The part should be an integer from 1
 	// to 12, have its min_length field be at least 1, and have its max_length field be 2. Any
 	// leading zero should be removed (unless the part is always 2 digits long, in which case a
 	// leading zero may be needed).
 	FpeDatePartMonth FpeDatePart = "month"
-	// Used to indicate that a token part represents a day. The part should be a number from 1 to
+	// Used to indicate that a token part represents a day. The part should be an integer from 1 to
 	// 31, have its min_length field be at least 1, and have its max_length field be 2. Any
 	// leading zero should be removed (unless the part is always 2 digits long, in which case a
 	// leading zero may be needed). Further restrictions apply when the Day part occurs within a
@@ -1782,9 +1922,9 @@ const (
 // A structure for specifying a particular date consisting of a day and a month, for use in an
 // FpeDate structure.
 type FpeDayMonthDate struct {
-	// The month, which should be a number from 1 to 12.
+	// The month, which should be an integer from 1 to 12.
 	Month uint8 `json:"month"`
-	// The day, which should be a number from 1 to either 29, 30, or 31, depending on the month
+	// The day, which should be an integer from 1 to either 29, 30, or 31, depending on the month
 	// and year. Here, February is treated as having 29 days.
 	Day uint8 `json:"day"`
 }
@@ -1792,29 +1932,37 @@ type FpeDayMonthDate struct {
 // A structure for specifying a particular date consisting of a day, month, and year, for use in
 // an FpeDate structure.
 type FpeDayMonthYearDate struct {
-	// The year, which should be a number less than 100000. Zero is treated as a leap year.
+	// The year, which should be an integer less than 100000. Zero is treated as a leap year.
 	Year uint32 `json:"year"`
-	// The month, which should be a number from 1 to 12.
+	// The month, which should be an integer from 1 to 12.
 	Month uint8 `json:"month"`
-	// The day, which should be a number from 1 to either 28, 29, 30, or 31, depending on the
+	// The day, which should be an integer from 1 to either 28, 29, 30, or 31, depending on the
 	// month and year.
 	Day uint8 `json:"day"`
 }
 
 // Structure of a tokenized portion of a complex tokenization data type.
+//
+// Implementation note: the backend parser is locally "greedy" and will attempt to match
+// as many characters as possible. If this later results in an invalid parse of the rest
+// of the input, the backend ***will not backtrack*** and will simply return with an error.
 type FpeEncryptedPart struct {
 	// The minimum allowed length for this part (in chars).
 	MinLength uint32 `json:"min_length"`
 	// The maximum allowed length for this part (in chars).
 	MaxLength uint32 `json:"max_length"`
-	// The character set to use for this part.
+	// The alphabet to use for this part.
 	CharSet FpeCharSet `json:"char_set"`
-	// The output character set to use for this part. Defaults to `char_set` if not specified.
+	// The output alphabet to use for this part. Defaults to `char_set` if not specified.
 	// When specified, the cardinality of `cipher_char_set` must be the same as `char_set`.
 	CipherCharSet *FpeCharSet `json:"cipher_char_set,omitempty"`
 	// Additional constraints that the token type must satisfy.
 	Constraints *FpeConstraints `json:"constraints,omitempty"`
 	// The characters to be preserved while encrypting or decrypting.
+	//
+	// Any preserved characters will be concatenated together, and their UTF-8 bytes will be used
+	// as an FF1 tweak. For example, if the input data is "abcd", and the first and last characters
+	// are to be preserved, the FF1 tweak will be the bytes of the string "ad".
 	Preserve *FpePreserveMask `json:"preserve,omitempty"`
 	// The characters to be masked while performing masked decryption.
 	Mask *FpePreserveMask `json:"mask,omitempty"`
@@ -1823,22 +1971,31 @@ type FpeEncryptedPart struct {
 // A structure for specifying a particular date consisting of a month and a year, for use in an
 // FpeDate structure.
 type FpeMonthYearDate struct {
-	// The year, which should be a number less than 100000. Zero is treated as a leap year.
+	// The year, which should be an integer less than 100000. Zero is treated as a leap year.
 	Year uint32 `json:"year"`
-	// The month, which should be a number from 1 to 12.
+	// The month, which should be an integer from 1 to 12.
 	Month uint8 `json:"month"`
 }
 
-// FPE-specific options.
+// FPE-specific options (for specifying the format of the
+// data to be encrypted)
 type FpeOptions struct {
-	// For specifying basic tokens
-	Basic    *FpeOptionsBasic
+	// Basic FPE options, suitable for simple datatypes. See the
+	// description of FpeOptionsBasic for more details.
+	Basic *FpeOptionsBasic
+	// Advanced FPE options. It is recommended to use this for
+	// specifying any FPE options, as it is more expressive than
+	// FpeOptionsBasic.
 	Advanced *FpeOptionsAdvanced
 }
+
+// Advanced FPE options. It is recommended to use this for
+// specifying any FPE options, as it is more expressive than
+// FpeOptionsBasic.
 type FpeOptionsAdvanced struct {
 	// The structure of the data type.
 	Format FpeDataPart `json:"format"`
-	// The user-friendly name for the data type that represents the input data.
+	// The user-provided name for the data type.
 	Description *string `json:"description,omitempty"`
 }
 
@@ -1873,21 +2030,39 @@ func (x *FpeOptions) UnmarshalJSON(data []byte) error {
 	return errors.Errorf("not a valid FpeOptions")
 }
 
-// Basic FPE-specific options.
+// Basic FPE-specific options. This is suitable for simple datatypes
+// that consist of ASCII digits, or ASCII digits and uppercase letters.
 type FpeOptionsBasic struct {
-	// The base for input data.
+	// The FPE base for the input data (i.e., the size of the character
+	// set of the datatype). This must be an integer from 2 to 36.
+	//
+	// This also implicitly defines the alphabet of the datatype. A base
+	// from 2 to 10 implies ASCII digits (e.g., a radix of 3 can be used
+	// to represent a ternary string), and a base from 11 to 36 implies
+	// ASCII digits and uppercase letters (e.g., a radix of 16 can be
 	Radix uint32 `json:"radix"`
 	// The minimum allowed length for the input data.
 	MinLength uint32 `json:"min_length"`
 	// The maximum allowed length for the input data.
 	MaxLength uint32 `json:"max_length"`
 	// The list of indices of characters to be preserved while performing encryption/decryption.
+	// Indices are Python-like; i.e., nonnegative indices index from the beginning of the input
+	// (where 0 is the first character), and negative indices index from the end of the input.
+	// (where -1 is the last character, -2 is second to last, and so on).
+	//
+	// Any preserved characters will be concatenated together and used as an FF1 tweak. For example,
+	// if the input data is "abcd", and the first and last characters are to be preserved, the FF1
+	// tweak will be the ASCII bytes of the string "ad".
 	Preserve []int `json:"preserve"`
 	// The list of indices of characters to be masked while performing masked decryption.
+	// Indices are Python-like; i.e., nonnegative indices index from the beginning of the input
+	// (where 0 is the first character), and negative indices index from the end of the input.
+	// (where -1 is the last character, -2 is second to last, and so on).
 	Mask *[]int `json:"mask,omitempty"`
-	// Whether encrypted/decrypted data should satisfy LUHN checksum formula.
+	// Whether the encrypted/decrypted data contains a checksum digit that satisfies the Luhn
+	// formula. (The output ciphertext/plaintext will also contain a Luhn checksum digit.)
 	LuhnCheck *bool `json:"luhn_check,omitempty"`
-	// The user-friendly name for the data type that represents the input data.
+	// The user-provided name for the data type that represents the input data.
 	Name *string `json:"name,omitempty"`
 }
 
@@ -1896,8 +2071,8 @@ type FpePreserveMask struct {
 	// Indicates that the entire encrypted part is to be preserved or masked.
 	Entire *All
 	// Indicates that only certain characters are to be preserved or masked. Indices are
-	// Python-like; i.e., negative indices index from the back of the token portion, with
-	// index -1 being the end of the array. (Indicating that nothing should be preserved
+	// Python-like; i.e., negative indices index from the end of the token portion, with
+	// index -1 denoting the last character. (Indicating that nothing should be preserved
 	// or masked can be done via an empty list, which is the default value for this enum.)
 	ByChars *[]int
 }
@@ -1987,7 +2162,8 @@ const (
 	// Google personnel can make this type of access for the following reasons:
 	// - To investigate and confirm that a suspected service outage doesn't affect the customer.
 	// - To ensure backup and recovery from outages and system failures.
-	GoogleAccessReasonGoogleResponseToProductionAlert GoogleAccessReason = "GOOGLE_RESPONSE_TO_PRODUCTION_ALERT"
+	GoogleAccessReasonGoogleResponseToProductionAlert     GoogleAccessReason = "GOOGLE_RESPONSE_TO_PRODUCTION_ALERT"
+	GoogleAccessReasonCustomerAuthorizedWorkflowServicing GoogleAccessReason = "CUSTOMER_AUTHORIZED_WORKFLOW_SERVICING"
 )
 
 // Policy specifying acceptable access reasons
@@ -3298,6 +3474,25 @@ func (x *MfaChallengeResponse) UnmarshalJSON(data []byte) error {
 	return errors.Errorf("not a valid MfaChallengeResponse")
 }
 
+// A FIDO device that may be used for second factor authentication.
+type MfaDevice struct {
+	// Name given to the FIDO device.
+	Name string `json:"name"`
+	// Type of the device, should be either fido2 or u2f
+	Type MfaDeviceType `json:"type"`
+	// Origin of the FIDO device.
+	Origin *string `json:"origin,omitempty"`
+}
+
+// Type of MFA device
+type MfaDeviceType string
+
+// List of supported MfaDeviceType values
+const (
+	MfaDeviceTypeU2f   MfaDeviceType = "U2f"
+	MfaDeviceTypeFido2 MfaDeviceType = "Fido2"
+)
+
 // Protocols for MFA.
 type MfaProtocol string
 
@@ -3376,6 +3571,58 @@ func (x *MgfPolicy) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Corresponds to the `display` parameter in
+// https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+type OauthAuthParamDisplay string
+
+// List of supported OauthAuthParamDisplay values
+const (
+	// The Authorization Server SHOULD display the authentication and consent UI consistent with a full User Agent page view
+	OauthAuthParamDisplayPage OauthAuthParamDisplay = "page"
+	// The Authorization Server SHOULD display the authentication and consent UI consistent with a popup User Agent window.
+	// The popup User Agent window should be of an appropriate size for a login-focused dialog and should not obscure the entire window that it is popping up over.
+	OauthAuthParamDisplayPopup OauthAuthParamDisplay = "popup"
+	// The Authorization Server SHOULD display the authentication and consent UI consistent with a device that leverages a touch interface.
+	OauthAuthParamDisplayTouch OauthAuthParamDisplay = "touch"
+	// The Authorization Server SHOULD display the authentication and consent UI consistent with a "feature phone" type display.
+	OauthAuthParamDisplayWap OauthAuthParamDisplay = "wrap"
+)
+
+// Corresponds to the `prompt` parameter in
+// https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+type OauthAuthParamPrompt string
+
+// List of supported OauthAuthParamPrompt values
+const (
+	// The Authorization Server SHOULD prompt the End-User for reauthentication.
+	// If it cannot reauthenticate the End-User, it MUST return an error, typically login_required.
+	OauthAuthParamPromptLogin OauthAuthParamPrompt = "login"
+	// The Authorization Server MUST NOT display any authentication or consent user interface pages.
+	// An error is returned if an End-User is not already authenticated or the Client does not have pre-configured consent for the requested Claims or does not fulfill other conditions for processing the request.
+	// The error code will typically be login_required, interaction_required, or another code defined in Section 3.1.2.6.
+	// This can be used as a method to check for existing authentication and/or consent.
+	OauthAuthParamPromptNone OauthAuthParamPrompt = "none"
+	// The Authorization Server SHOULD prompt the End-User for consent before returning information to the Client.
+	// If it cannot obtain consent, it MUST return an error, typically consent_required.
+	OauthAuthParamPromptConsent OauthAuthParamPrompt = "consent"
+	// The Authorization Server SHOULD prompt the End-User to select a user account.
+	// This enables an End-User who has multiple accounts at the Authorization Server to select amongst the multiple accounts that they might have current sessions for.
+	// If it cannot obtain an account selection choice made by the End-User, it MUST return an error, typically account_selection_required.
+	OauthAuthParamPromptSelectAccount OauthAuthParamPrompt = "select_account"
+)
+
+// Parameters for the OpenID Connect Authentication Request
+// https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+type OauthAuthenticationParameters struct {
+	// Specifies whether the Authorization Server prompts the End-User for reauthentication and consent
+	Prompt *[]OauthAuthParamPrompt `json:"prompt,omitempty"`
+	// Specifies how the Authorization Server displays the authentication and consent user interface pages to the End-User
+	Display *OauthAuthParamDisplay `json:"display,omitempty"`
+	// Specifies the allowable elapsed time in seconds since the last time the End-User was actively authenticated by the OP.
+	// If the elapsed time is greater than this value, the OP MUST attempt to actively re-authenticate the End-User
+	MaxAge *uint64 `json:"max_age,omitempty"`
+}
+
 // OAuth scope.
 type OauthScope string
 
@@ -3435,17 +3682,6 @@ type Pkcs11ClientConfig struct {
 	OpaqueObjectsAreNotCertificates *bool `json:"opaque_objects_are_not_certificates,omitempty"`
 	MaxConcurrentRequestsPerSlot    *uint `json:"max_concurrent_requests_per_slot,omitempty"`
 }
-
-type Pkcs8Mode string
-
-// List of supported Pkcs8Mode values
-const (
-	Pkcs8ModePbeWithSHAAnd128BitRC4         Pkcs8Mode = "PBEWITHSHAAND128BITRC4"
-	Pkcs8ModePbeWithSHAAnd3KeyTripleDesCbc  Pkcs8Mode = "PBEWITHSHAAND3KEYTRIPLEDESCBC"
-	Pkcs8ModePbeWithSHAAnd2KeyTripleDesCbc  Pkcs8Mode = "PBEWITHSHAAND2KEYTRIPLEDESCBC"
-	Pkcs8ModePbes2WithPBKDF2AndKeyDes       Pkcs8Mode = "PBES2WITHPBKDF2ANDKEYDES"
-	Pkcs8ModePbes2WithPBKDF2AndKeyTripleDes Pkcs8Mode = "PBES2WITHPBKDF2ANDKEYTRIPLEDES"
-)
 
 // A security principal.
 type Principal struct {
@@ -4179,26 +4415,29 @@ type SeedOptions struct {
 	RandomIv   *bool       `json:"random_iv,omitempty"`
 }
 
-// Request body to sign data (or hash value) using an asymmetric key.
+// Request to sign data (or hashed data) using an asymmetric key.
 type SignRequest struct {
-	// Identifier of the sobject used for signing
+	// Reference to the sobject to use for signing. This can be a key ID,
+	// key name, or a transient key blob.
 	Key *SobjectDescriptor `json:"key,omitempty"`
-	// Hashing algorithm used for signing
+	// Hashing algorithm to use for signing
 	HashAlg DigestAlgorithm `json:"hash_alg"`
-	// Hash value to be signed. Exactly one of `hash` and `data` is required.
+	// Hashed data to be signed. Either `hash` or `data` should be specified;
+	// it is an error to specify both or none.
 	Hash *Blob `json:"hash,omitempty"`
-	// Data to be signed. Exactly one of `hash` and `data` is required.
-	// To reduce request size and avoid reaching the request size limit, prefer `hash`.
+	// Data to be signed. Either `hash` or `data` should be specified; it is
+	// an error to specify both or none.
 	Data *Blob `json:"data,omitempty"`
-	// Signature mechanism
+	// Signature mechanism to use
 	Mode *SignatureMode `json:"mode,omitempty"`
-	// Boolean value to choose deterministic signature
+	// Whether signatures should be deterministic. Defaults to false. If
+	// specified, the value must be compatible with the key's settings.
 	DeterministicSignature *bool `json:"deterministic_signature,omitempty"`
 }
 
-// Response body of sign operation.
+// Response of a signing request.
 type SignResponse struct {
-	// UUID of the Key. Key id is returned for non-transient keys.
+	// The ID of the key used for signing. Returned for non-transient keys
 	Kid *UUID `json:"kid,omitempty"`
 	// Signed data
 	Signature Blob `json:"signature"`
@@ -4703,26 +4942,27 @@ const (
 
 // Request to verify a signature using an asymmetric key.
 type VerifyRequest struct {
-	// Identifier of the sobject used for verification
+	// Reference to the sobject to use for verification. This can be a key
+	// ID, key name, or a transient key blob.
 	Key *SobjectDescriptor `json:"key,omitempty"`
-	// Hash algorithm used for verifying signature
+	// Hash algorithm used for signature verification
 	HashAlg DigestAlgorithm `json:"hash_alg"`
-	// The hash of the data on which the signature is being verified.
-	// Exactly one of `hash` and `data` is required.
+	// The hash of the data on which the signature is being verified. Either
+	// `hash` or `data` should be specified; it is an error to specify both
+	// or none.
 	Hash *Blob `json:"hash,omitempty"`
-	// The data on which the signature is being verified.
-	// Exactly one of `hash` and `data` is required.
-	// To reduce request size and avoid reaching the request size limit, prefer `hash`.
+	// The data on which the signature is being verified. Either `hash` or
+	// `data` should be specified; it is an error to specify both or none.
 	Data *Blob `json:"data,omitempty"`
 	// Signature mechanism used for verification
 	Mode *SignatureMode `json:"mode,omitempty"`
-	// The signature to verify.
+	// The signature to verify
 	Signature Blob `json:"signature"`
 }
 
 // Result of verifying a signature or MAC.
 type VerifyResponse struct {
-	// Key id is returned for non-transient keys.
+	// The ID of the key used for verification. Returned for non-transient keys.
 	Kid *UUID `json:"kid,omitempty"`
 	// True if the signature verified and false if it did not.
 	Result bool `json:"result"`

@@ -98,34 +98,51 @@ type DecryptInitResponse struct {
 	State Blob `json:"state"`
 }
 
-// Request body to decrypt data using a symmetric or asymmetric key.
+// Request to decrypt data.
 type DecryptRequest struct {
-	// Reference to the sobject used for decryption
+	// Reference to the sobject to use for decryption. This can be a key
+	// ID, key name, or a transient key blob.
 	Key *SobjectDescriptor `json:"key,omitempty"`
-	// Algorithm to be used for decryption
+	// Decryption algorithm to use. If specified, this must be compatible
+	// with the key type; for example, an RSA key cannot be used with AES.
 	Alg *Algorithm `json:"alg,omitempty"`
-	// Encrypted bytes
+	// Ciphertext bytes to be decrypted.
+	//
+	// Note that when performing format-preserving decryption (i.e.,
+	// detokenization), the ciphertext should be encoded as UTF-8 bytes.
 	Cipher Blob `json:"cipher"`
-	// Mode of decryption. Applicable for symmetric algorithms.
+	// Decryption mode to use. This is required for symmetric decryption.
+	// For RSA decryption, the mode can be used to optionally specify the
+	// padding to use. For all other algorithms, this field should not be
+	// specified.
 	Mode *CryptMode `json:"mode,omitempty"`
-	// Initialization vector. Applicable for symmetric algorithms.
+	// The initialization vector to use, required for modes that take IVs
+	// (and irrelevant otherwise).
 	Iv *Blob `json:"iv,omitempty"`
-	// Authenticated data. Only applicable when using GCM mode.
+	// The authenticated data to use. This is only applicable when using
+	// authenticated decryption modes (like GCM or CCM).
 	Ad *Blob `json:"ad,omitempty"`
-	// Tag is only applicable when using GCM mode.
+	// The authentication tag, relevant for authenticated encryption modes
+	// (i.e., GCM or CCM), and otherwise irrelevant.
 	Tag *Blob `json:"tag,omitempty"`
-	// This flag is only useful with `DECRYPT` permission. When this flag is `true`,
-	// decryption returns masked output. Setting it to `false` is equivalent to not using
-	// this flag.
-	// With `MASKDECRYPT` permission, this flag is ignored.
+	// Whether to returned a masked result when detokenizing (i.e., when
+	// decrypting using the FF1/FPE mode). Defaults to false.
+	//
+	// This field is only useful if the app has the `DECRYPT` permission.
+	// In such situations, when this field is `true`, decryption returns
+	// masked output. However, with the `MASKDECRYPT` permission, this field
+	// is ignored and detokenization will always return the masked output.
 	Masked *bool `json:"masked,omitempty"`
 }
 
-// Reponse body of POST /crypto/v1/decrypt
+// Response of a decryption request.
 type DecryptResponse struct {
-	// The key id of the key used to decrypt. Returned for non-transient keys.
+	// The ID of the key used for decryption. Returned for non-transient keys.
 	Kid *UUID `json:"kid,omitempty"`
-	// Decrypted bytes
+	// Decrypted plaintext bytes.
+	//
+	// Note that when performing format-preserving decryption (i.e.,
+	// detokenization), the plaintext is encoded as UTF-8 bytes.
 	Plain Blob `json:"plain"`
 }
 
@@ -303,33 +320,50 @@ type EncryptInitResponse struct {
 	State Blob `json:"state"`
 }
 
-// A request to encrypt data using a symmetric or asymmetric key.
+// Request to encrypt data.
 type EncryptRequest struct {
-	// Reference to Sobject used for encryption
+	// Reference to the sobject to use for encryption. This can be a key
+	// ID, key name, or a transient key blob.
 	Key *SobjectDescriptor `json:"key,omitempty"`
-	// Encryption Algorithm
+	// Encryption algorithm to use. The algorithm must be compatible with
+	// the key type; for example, an RSA key cannot be used with AES.
 	Alg Algorithm `json:"alg"`
-	// Data bytes to be encrypted
+	// Plaintext bytes to be encrypted.
+	//
+	// Note that when performing format-preserving encryption (i.e.,
+	// tokenization), the plaintext should be encoded as UTF-8 bytes.
 	Plain Blob `json:"plain"`
-	// Mode is required for symmetric algorithms.
+	// Encryption mode to use. This is required for symmetric encryption.
+	// For RSA encryption, the mode can be used to optionally specify the
+	// padding to use. For all other algorithms, this field should not be
+	// specified.
 	Mode *CryptMode `json:"mode,omitempty"`
-	// Initialization vector is optional and will be randomly generated if not specified.
+	// The initialization vector to use. This is only applicable to modes
+	// that take IVs, and will be randomly generated if not specified.
 	Iv *Blob `json:"iv,omitempty"`
-	// Authenticated data is only applicable when using GCM mode.
+	// The authenticated data to use. This is only applicable when using
+	// authenticated encryption modes (like GCM or CCM).
 	Ad *Blob `json:"ad,omitempty"`
-	// Tag length is only applicable when using GCM mode.
+	// The length of the authentication tag, in bits, for authenticated
+	// encryption modes (i.e., GCM or CCM). For other modes, this field
+	// is irrelevant.
 	TagLen *uint `json:"tag_len,omitempty"`
 }
 
-// Response of POST /crypto/v1/encrypt
+// Response of an encryption request.
 type EncryptResponse struct {
-	// Key id is returned for non-transient keys.
+	// The ID of the key used for encryption. Returned for non-transient keys.
 	Kid *UUID `json:"kid,omitempty"`
-	// Encrypted bytes
+	// Encrypted ciphertext bytes.
+	//
+	// Note that when performing format-preserving encryption (i.e.,
+	// tokenization), the ciphertext is encoded as UTF-8 bytes.
 	Cipher Blob `json:"cipher"`
-	// Initialization vector is only returned for symmetric encryption.
+	// The intialization vector used during encryption. This is only
+	// applicable for certain symmetric encryption modes.
 	Iv *Blob `json:"iv,omitempty"`
-	// Tag is only returned for symmetric encryption with GCM mode.
+	// When using the GCM or CCM modes, the tag is returned from
+	// authenticated encryption.
 	Tag *Blob `json:"tag,omitempty"`
 }
 
@@ -361,21 +395,24 @@ const (
 	KeyFormatPkcs8   KeyFormat = "Pkcs8"
 )
 
-// Request body for HMAC or CMAC operation.
+// Request to compute a MAC.
 type MacRequest struct {
-	// Identifier of the sobject used for HMAC/CMAC
+	// Reference to the sobject with which to compute a MAC.
+	// This can be a key ID, key name, or a transient key blob.
 	Key *SobjectDescriptor `json:"key,omitempty"`
-	// Hash algorithm is required for HMAC.
+	// The hash algorithm to use when computing an HMAC. Irrelevant
+	// if computing a CMAC.
 	Alg *DigestAlgorithm `json:"alg,omitempty"`
-	// Raw binary data
+	// The data for which to generate a MAC
 	Data Blob `json:"data"`
 }
 
-// Response body of HMAC or CMAC operation.
+// Response of an MAC verification request.
 type MacResponse struct {
-	// Key id
+	// The ID of the key used to compute the MAC. Returned for
+	// non-transient keys
 	Kid *UUID `json:"kid,omitempty"`
-	// MAC generated for the input data.
+	// MAC generated for the input data
 	Mac Blob `json:"mac"`
 }
 
@@ -446,41 +483,53 @@ type TransformKeyRequest struct {
 	Transient *bool `json:"transient,omitempty"`
 }
 
-// Request body to perform key unwrapping.
+// Request to unwrap an sobject with another sobject.
 type UnwrapKeyRequest struct {
-	// The wrapping key
+	// Reference to the unwrapping key. This can be a key ID, key name,
+	// or a transient key blob. It may also be a password (if unwrapping
+	// PKCS #8 blobs).
 	Key *SobjectDescriptor `json:"key,omitempty"`
-	// Algorithm to be used for unwrapping
+	// Algorithm to use for key unwrapping. The algorithm must be
+	// compatible with the key type; for example, an RSA key cannot
+	// be used with AES.
 	Alg Algorithm `json:"alg"`
 	// Object type of the key being unwrapped
 	ObjType ObjectType `json:"obj_type"`
-	// RSA-specific options for unwrapping
+	// RSA-specific options for the key being unwrapped
 	Rsa *RsaOptions `json:"rsa,omitempty"`
-	// A serialized Security Object, previously wrapped with another key
+	// A security object previously wrapped with another key
 	WrappedKey Blob `json:"wrapped_key"`
-	// Mode is required for symmetric algorithms
+	// Decryption mode to use. This is required for unwrapping via
+	// symmetric decryption. For RSA-based wrapping, the mode can be used
+	// to optionally specify the padding to use. For all other algorithms,
+	// this field should not be specified.
 	Mode *CryptMode `json:"mode,omitempty"`
-	// Initialization vector is required for symmetric algorithms
+	// The initialization vector to use, required for modes that take IVs
+	// (and irrelevant otherwise).
 	Iv *Blob `json:"iv,omitempty"`
-	// Authenticated data is only applicable if mode is GCM
+	// The authenticated data to use. This is only applicable when using
+	// authenticated decryption modes (i.e., GCM or CCM).
 	Ad *Blob `json:"ad,omitempty"`
-	// Tag is required if mode is GCM.
+	// The authentication tag, relevant for authenticated encryption modes
+	// (i.e., GCM or CCM), and otherwise irrelevant.
 	Tag *Blob `json:"tag,omitempty"`
-	// Name to be given to the resulting security object if persisted
+	// Name to be given to the resulting security object, if persisted
 	Name *string `json:"name,omitempty"`
-	// Group ID of the security group that the resulting security object should belong to. The user or
-	// application creating this security object must be a member of this group. If no group is
-	// specified, the default group for the requesting application will be used
+	// ID of the group that the unwrapped security object should belong to
+	// (if persisted). The user or application creating this security object
+	// must be a member of this group. If no group is specified, and the
+	// requester is an app, the app's default group will be used.
 	GroupID *UUID `json:"group_id,omitempty"`
-	// Whether the unwrap key should have cryptographic operations enabled
+	// Whether the unwrapped key should have cryptographic operations enabled.
+	// Defaults to true.
 	Enabled *bool `json:"enabled,omitempty"`
-	// Description of the unwrapped key
+	// User-defined description of the unwrapped key
 	Description *string `json:"description,omitempty"`
-	// User-defined metadata for the resulting key stored as key-value pairs.
+	// User-defined metadata for the resulting key, stored as key-value pairs.
 	CustomMetadata *map[string]string `json:"custom_metadata,omitempty"`
-	// Optional array of key operations to be enabled for the resulting security object. If not
-	// provided the service will provide a default set of key operations. Note that if you provide
-	// an empty array, all key operations will be disabled.
+	// Optional array of key operations to be enabled for the resulting security
+	// object. If not provided, DSM will provide a default set of key operations.
+	// Note that an empty array will result in all key operations being disabled.
 	KeyOps *KeyOperations `json:"key_ops,omitempty"`
 	// Whether the unwrapped key should be a transient key
 	Transient *bool `json:"transient,omitempty"`
@@ -488,49 +537,68 @@ type UnwrapKeyRequest struct {
 	Kcv *string `json:"kcv,omitempty"`
 }
 
-// Rquest body to verify a MAC value.
+// Request to verify a MAC.
 type VerifyMacRequest struct {
-	// Identifier of the sobject used for MAC verification
+	// Reference to the sobject with which to verify a MAC.
+	// This can be a key ID, key name, or a transient key blob.
 	Key *SobjectDescriptor `json:"key,omitempty"`
-	// Algorithm is required for HMAC.
+	// The hash algorithm used when computing the HMAC. Irrelevant
+	// if verifying a CMAC.
 	Alg *DigestAlgorithm `json:"alg,omitempty"`
-	// Bytes value over which MAC needs to be verified
+	// The data over which the MAC needs to be verified
 	Data Blob `json:"data"`
-	// MAC to verify. Note that the previously available
-	// field `digest` is deprecated and this should be used
+	// The MAC to verify. Note that the previously available
+	// field `digest` is deprecated; this field should be used
 	// instead.
 	Mac *Blob `json:"mac,omitempty"`
 }
 
-// Request body to perform key wrapping.
+// Request to wrap an sobject with another sobject.
 type WrapKeyRequest struct {
-	// The wrapping key.
+	// Reference to the wrapping key. This can be a key ID, key name,
+	// or a transient key blob.
 	Key *SobjectDescriptor `json:"key,omitempty"`
-	// The key to be wrapped.
+	// Reference to the sobject being wrapped. This can be an sobject
+	// ID, sobject name, or a transient sobject blob.
+	//
+	// If specified, the `kid` field should not be present.
 	Subject *SobjectDescriptor `json:"subject,omitempty"`
-	// Id of the key to be wrapped (legacy, mutually exclusive with `subject`).
+	// ID of the sobject to be wrapped. (This is a legacy field,
+	// mutually exclusive with `subject`).
 	Kid *UUID `json:"kid,omitempty"`
-	// Algorithm for key wrapping
+	// Algorithm to use for key wrapping. The algorithm must be
+	// compatible with the key type; for example, an RSA key cannot
+	// be used with AES.
 	Alg Algorithm `json:"alg"`
-	// Mode is required for symmetric algorithms.
+	// Encryption mode to use. This is required for wrapping via symmetric
+	// encryption. For RSA-based wrapping, the mode can be used to
+	// optionally specify the padding to use. For all other algorithms,
+	// this field should not be specified.
 	Mode *CryptMode `json:"mode,omitempty"`
-	// Initialization vector
+	// The initialization vector to use. This is only applicable to modes
+	// that take IVs, and will be randomly generated if not specified.
 	Iv *Blob `json:"iv,omitempty"`
-	// Authenticated data is only applicable if mode is GCM.
+	// The authenticated data to use. This is only applicable when using
+	// authenticated encryption modes (i.e., GCM or CCM).
 	Ad *Blob `json:"ad,omitempty"`
-	// Tag length is required when mode is GCM.
+	// The length of the authentication tag, in bits, for authenticated
+	// encryption modes (i.e., GCM or CCM). For other modes, this field
+	// is irrelevant.
 	TagLen *uint `json:"tag_len,omitempty"`
-	// Key format for wrapping
+	// Format of the wrapped key
 	KeyFormat *KeyFormat `json:"key_format,omitempty"`
 }
 
-// Result of key wrapping operation.
+// Result of a key wrapping request.
 type WrapKeyResponse struct {
-	// Binary object of the wrapped key
+	// The wrapped key blob
 	WrappedKey Blob `json:"wrapped_key"`
-	// Initialization vector is only returned for symmetric algorithms.
+	// The intialization vector used during encryption. This is only
+	// applicable for certain symmetric encryption modes.
 	Iv *Blob `json:"iv,omitempty"`
-	// Tag is only returned for symmetric algorithm with GCM mode.
+	// The authenticated tag returned from authenticated encryption
+	// (i.e., using GCM or CCM mode). For other modes, this field is
+	// not applicable.
 	Tag *Blob `json:"tag,omitempty"`
 }
 
@@ -582,7 +650,8 @@ func (c *Client) CreateDigest(ctx context.Context, body DigestRequest) (*DigestR
 // For symmetric ciphers, `mode` (the block cipher mode) is a required field.
 // For GCM and CCM modes, `tag_len` is a required field.
 // `iv` is required for symmetric ciphers and unused for asymmetric ciphers.
-// It must contain the initialization value used when the data was encrypted.
+// If the mode requires one, the request must contain the initialization vector
+// used when the data was encrypted.
 // Objects of type Opaque, EC, or HMAC may not be used with this API.
 func (c *Client) Decrypt(ctx context.Context, body DecryptRequest) (*DecryptResponse, error) {
 	u := "/crypto/v1/decrypt"
@@ -682,10 +751,10 @@ func (c *Client) RequestApprovalToDerive(
 // For symmetric ciphers, `mode` (the block cipher mode) is a required field.
 // For GCM and CCM modes, `tag_len` is a required field.
 // `iv` is optional for symmetric ciphers and unused for asymmetric ciphers. If
-// provided, it will be used as the cipher initialization value. Length of `iv`
-// must match the initialization value size for the cipher and mode. If not
-// provided, a random iv of the correct length for the cipher is created
-// and mode is created and returned in response.
+// provided, it will be used as the cipher initialization vector. The length of
+// `iv` must match the initialization vector size for the cipher and mode. If not
+// provided, a random iv of the correct length is created and returned in the
+// response.
 // Objects of type Opaque, EC, or HMAC may not be used with this API.
 func (c *Client) Encrypt(ctx context.Context, body EncryptRequest) (*EncryptResponse, error) {
 	u := "/crypto/v1/encrypt"
@@ -752,15 +821,15 @@ func (c *Client) EncryptUpdate(ctx context.Context, body EncryptUpdateRequest) (
 	return &r, nil
 }
 
-// Compute HMAC or CMAC. The key being used should have
-// MACGENERATE key operation.
+// Compute a message authentication code (HMAC or CMAC). The key being used
+// should have the `MACGENERATE` key operation.
 //
-// Key of type HMAC needs to be used for computing HMAC
-// along with the hash algorithm in request. Hash algorithms
-// supported for this are RIPEMD-160, SHA-1, SHA-224, SHA-256,
-// SHA-384 & SHA-512.
-// For computing CMAC, AES, ARIA, DES3 & SEED keys can be used.
-// Digest algorithm shouldn't be specified in case of CMAC.
+// A key of type `HMAC` needs to be used for computing an HMAC, and the hash
+// algorithm should be present in the request.
+//
+// AES, ARIA, DES3, and SEED keys can be used for computing a CMAC. No hash
+// algorithm should be specified for CMAC computation.
+// The digest algorithm shouldn't be specified in case of CMAC.
 func (c *Client) Mac(ctx context.Context, body MacRequest) (*MacResponse, error) {
 	u := "/crypto/v1/mac"
 	var r MacResponse
@@ -784,11 +853,8 @@ func (c *Client) RequestApprovalToMac(
 	return c.CreateApprovalRequest(ctx, req)
 }
 
-// Verify the input MAC. The key used must have MACVERIFY
+// Verify the input MAC. The key used must have the `MACVERIFY`
 // key operation.
-//
-// See documentation on `POST /crypto/v1/mac` for supported key types
-// and hash algorithms.
 func (c *Client) MacVerify(ctx context.Context, body VerifyMacRequest) (*VerifyResponse, error) {
 	u := "/crypto/v1/macverify"
 	var r VerifyResponse
@@ -799,7 +865,7 @@ func (c *Client) MacVerify(ctx context.Context, body VerifyMacRequest) (*VerifyR
 }
 
 // Sign with a private key. The key must be asymmetric
-// and have SIGN key operation enabled.
+// and have the `SIGN` key operation enabled.
 func (c *Client) Sign(ctx context.Context, body SignRequest) (*SignResponse, error) {
 	u := "/crypto/v1/sign"
 	var r SignResponse
@@ -856,7 +922,7 @@ func (c *Client) RequestApprovalToTransform(
 // securely import security objects into DSM that were previously wrapped by
 // DSM or another key management system. A new security object will be created
 // in DSM with the unwrapped data.
-// The wrapping key must have the unwrapkey operation enabled.
+// The wrapping key must have the `UNWRAPKEY` operation enabled.
 // The `obj_type` parameter specifies the object type of the security object being
 // unwrapped.
 func (c *Client) Unwrap(ctx context.Context, body UnwrapKeyRequest) (*Sobject, error) {
@@ -883,7 +949,7 @@ func (c *Client) RequestApprovalToUnwrap(
 }
 
 // Verify a signature with a public key. The verifying key must
-// be an asymmetric key with VERIFY key operation enabled.
+// be an asymmetric key with the `VERIFY` key operation enabled.
 func (c *Client) Verify(ctx context.Context, body VerifyRequest) (*VerifyResponse, error) {
 	u := "/crypto/v1/verify"
 	var r VerifyResponse
@@ -898,8 +964,8 @@ func (c *Client) Verify(ctx context.Context, body VerifyRequest) (*VerifyRespons
 // Wrap (encrypt) an existing security object with a key. This allows keys to be
 // securely exported from DSM so they can be later imported into DSM or
 // another key management system.
-// The key being wrapped must have the export operation enabled. The wrapping key
-// must have the wrapkey operation enabled.
+// The key being wrapped must have the `EXPORT` operation enabled. The wrapping key
+// must have the `WRAPKEY` operation enabled.
 //
 // The following wrapping operations are supported:
 //   - Symmetric keys, HMAC keys, opaque objects, and secret objects may be wrapped

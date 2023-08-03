@@ -583,6 +583,8 @@ type AuthConfigOauth struct {
 	TLS                      TlsConfig `json:"tls"`
 	ClientID                 string    `json:"client_id"`
 	ClientSecret             string    `json:"client_secret"`
+	// Parameters to set when calling `idp_authorization_endpoint`
+	AuthParams *OauthAuthenticationParameters `json:"auth_params,omitempty"`
 }
 
 // Password authentication settings.
@@ -922,6 +924,7 @@ const (
 	SubscriptionFeaturesAwsbyok
 	SubscriptionFeaturesAzurebyok
 	SubscriptionFeaturesGcpbyok
+	SubscriptionFeaturesGcpekmcontrolplane
 )
 
 // MarshalJSON converts SubscriptionFeatures to an array of strings
@@ -941,6 +944,9 @@ func (x SubscriptionFeatures) MarshalJSON() ([]byte, error) {
 	}
 	if x&SubscriptionFeaturesGcpbyok == SubscriptionFeaturesGcpbyok {
 		s = append(s, "GCPBYOK")
+	}
+	if x&SubscriptionFeaturesGcpekmcontrolplane == SubscriptionFeaturesGcpekmcontrolplane {
+		s = append(s, "GCPEKMCONTROLPLANE")
 	}
 	return json.Marshal(s)
 }
@@ -964,6 +970,8 @@ func (x *SubscriptionFeatures) UnmarshalJSON(data []byte) error {
 			*x = *x | SubscriptionFeaturesAzurebyok
 		case "GCPBYOK":
 			*x = *x | SubscriptionFeaturesGcpbyok
+		case "GCPEKMCONTROLPLANE":
+			*x = *x | SubscriptionFeaturesGcpekmcontrolplane
 		}
 	}
 	return nil
@@ -1074,6 +1082,22 @@ type SyslogLoggingConfigRequest struct {
 	Facility *SyslogFacility `json:"facility,omitempty"`
 }
 
+// Authentication method for Google Workspace CSE, `User` (default choice) requires each CSE user
+// to be registered as a DSM user, while `App` requires each CSE user to be represented by a DSM app.
+//
+// Note:
+// For large organizations where lots of users use Google Workspace CSE but are not otherwise expected
+// to be able to access DSM, App authentication method could be easier to implement.
+type WorkspaceCseAuthMethod string
+
+// List of supported WorkspaceCseAuthMethod values
+const (
+	// Each CSE user must be registered as a DSM user
+	WorkspaceCseAuthMethodUser WorkspaceCseAuthMethod = "User"
+	// Each CSE user is represented by a DSM app and only needs access to cse specific endpoints.
+	WorkspaceCseAuthMethodApp WorkspaceCseAuthMethod = "App"
+)
+
 // These settings will allow the service to validate the Google-issued
 // authorization tokens used in Workspace CSE APIs.
 //
@@ -1108,6 +1132,8 @@ type WorkspaceCseConfig struct {
 	// tokens. Different Workspace applications might require different
 	// authorization settings.
 	AuthorizationProviders []WorkspaceCseAuthorizationProvider `json:"authorization_providers"`
+	// An accounts method of authenticating users via the CSE integration.
+	AuthMethod *WorkspaceCseAuthMethod `json:"auth_method,omitempty"`
 }
 
 // An identity provider trusted to authenticate users for Workspace CSE APIs

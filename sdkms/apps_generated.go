@@ -75,6 +75,7 @@ const (
 	AppAuthTypeLdap                 AppAuthType = "Ldap"
 	AppAuthTypeAwsIam               AppAuthType = "AwsIam"
 	AppAuthTypeAwsXks               AppAuthType = "AwsXks"
+	AppAuthTypeGoogleWorkspaceCSE   AppAuthType = "GoogleWorkspaceCSE"
 )
 
 // App authentication mechanisms.
@@ -94,13 +95,16 @@ type AppCredential struct {
 	// Sign-in credentials to authenticate with AWS for it's services and resources.
 	AwsIam *struct{}
 	// SigV4 credentials used for AWS XKS APIs
-	AwsXks *AppCredentialAwsXks
+	AwsXks             *AppCredentialAwsXks
+	GoogleWorkspaceCse *struct{}
 }
 
 // An App's service account for communicating with Google APIs and Cloud. Google OAuth 2.0
 type AppCredentialGoogleServiceAccount struct {
 	// Policy specifying acceptable access reasons.
 	AccessReasonPolicy *GoogleAccessReasonPolicy `json:"access_reason_policy,omitempty"`
+	// Mapping for all groups an application is part of and the Gcp specific permissions it has within each of those groups.
+	Groups *map[UUID]GcpAppPermissions `json:"groups,omitempty"`
 }
 
 // Authentication using a signed JWT directly as a bearer token.
@@ -125,7 +129,8 @@ func (x AppCredential) MarshalJSON() ([]byte, error) {
 			x.SignedJwt != nil,
 			x.Ldap != nil,
 			x.AwsIam != nil,
-			x.AwsXks != nil}); err != nil {
+			x.AwsXks != nil,
+			x.GoogleWorkspaceCse != nil}); err != nil {
 		return nil, err
 	}
 	var obj struct {
@@ -137,6 +142,7 @@ func (x AppCredential) MarshalJSON() ([]byte, error) {
 		Ldap                 *UUID                              `json:"ldap,omitempty"`
 		AwsIam               *struct{}                          `json:"awsiam,omitempty"`
 		AwsXks               *AppCredentialAwsXks               `json:"awsxks,omitempty"`
+		GoogleWorkspaceCse   *struct{}                          `json:"googleworkspacecse,omitempty"`
 	}
 	obj.Secret = x.Secret
 	obj.Certificate = x.Certificate
@@ -146,6 +152,7 @@ func (x AppCredential) MarshalJSON() ([]byte, error) {
 	obj.Ldap = x.Ldap
 	obj.AwsIam = x.AwsIam
 	obj.AwsXks = x.AwsXks
+	obj.GoogleWorkspaceCse = x.GoogleWorkspaceCse
 	return json.Marshal(obj)
 }
 func (x *AppCredential) UnmarshalJSON(data []byte) error {
@@ -157,6 +164,7 @@ func (x *AppCredential) UnmarshalJSON(data []byte) error {
 	x.Ldap = nil
 	x.AwsIam = nil
 	x.AwsXks = nil
+	x.GoogleWorkspaceCse = nil
 	var obj struct {
 		Secret               *string                            `json:"secret,omitempty"`
 		Certificate          *Blob                              `json:"certificate,omitempty"`
@@ -166,6 +174,7 @@ func (x *AppCredential) UnmarshalJSON(data []byte) error {
 		Ldap                 *UUID                              `json:"ldap,omitempty"`
 		AwsIam               *struct{}                          `json:"awsiam,omitempty"`
 		AwsXks               *AppCredentialAwsXks               `json:"awsxks,omitempty"`
+		GoogleWorkspaceCse   *struct{}                          `json:"googleworkspacecse,omitempty"`
 	}
 	if err := json.Unmarshal(data, &obj); err != nil {
 		return err
@@ -178,6 +187,7 @@ func (x *AppCredential) UnmarshalJSON(data []byte) error {
 	x.Ldap = obj.Ldap
 	x.AwsIam = obj.AwsIam
 	x.AwsXks = obj.AwsXks
+	x.GoogleWorkspaceCse = obj.GoogleWorkspaceCse
 	return nil
 }
 
@@ -297,7 +307,9 @@ type AppRole string
 
 // List of supported AppRole values
 const (
-	AppRoleAdmin  AppRole = "admin"
+	// Can perform similar actions to an account admin user, but not crypto ops.
+	AppRoleAdmin AppRole = "admin"
+	// Can perform crypto ops
 	AppRoleCrypto AppRole = "crypto"
 )
 
@@ -320,6 +332,44 @@ func (x AppSort) urlEncode(v map[string][]string) error {
 		v["sort"] = []string{"app_id" + string(x.ByAppID.Order)}
 		if x.ByAppID.Start != nil {
 			v["start"] = []string{fmt.Sprintf("%v", *x.ByAppID.Start)}
+		}
+	}
+	return nil
+}
+
+type GcpAppPermissions uint64
+
+// List of supported GcpAppPermissions values
+const (
+	GcpAppPermissionsCryptoSpaceGetInfo GcpAppPermissions = 1 << iota
+	GcpAppPermissionsCryptoSpaceGetPublicKey
+)
+
+// MarshalJSON converts GcpAppPermissions to an array of strings
+func (x GcpAppPermissions) MarshalJSON() ([]byte, error) {
+	s := make([]string, 0)
+	if x&GcpAppPermissionsCryptoSpaceGetInfo == GcpAppPermissionsCryptoSpaceGetInfo {
+		s = append(s, "CRYPTO_SPACE_GET_INFO")
+	}
+	if x&GcpAppPermissionsCryptoSpaceGetPublicKey == GcpAppPermissionsCryptoSpaceGetPublicKey {
+		s = append(s, "CRYPTO_SPACE_GET_PUBLIC_KEY")
+	}
+	return json.Marshal(s)
+}
+
+// UnmarshalJSON converts array of strings to GcpAppPermissions
+func (x *GcpAppPermissions) UnmarshalJSON(data []byte) error {
+	*x = 0
+	var s []string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	for _, v := range s {
+		switch v {
+		case "CRYPTO_SPACE_GET_INFO":
+			*x = *x | GcpAppPermissionsCryptoSpaceGetInfo
+		case "CRYPTO_SPACE_GET_PUBLIC_KEY":
+			*x = *x | GcpAppPermissionsCryptoSpaceGetPublicKey
 		}
 	}
 	return nil
