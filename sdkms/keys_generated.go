@@ -143,14 +143,6 @@ type KeyCheckValueResponse struct {
 	Kcv string `json:"kcv"`
 }
 
-// Response structure from list security objects query
-type ListSobjectsResponse struct {
-	// Metadata indicating filtered and total count.
-	Md Metadata `json:"metadata,omitempty"`
-	// List of security objects matching the filtering parameters.
-	Items []Sobject `json:"items,omitempty"`
-}
-
 // Request parameters for filtering and listing security objects.
 type ListSobjectsParams struct {
 	// Filter security object(s) by group ID.

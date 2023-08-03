@@ -499,33 +499,38 @@ func (t *AuditLogTime) UnmarshalJSON(data []byte) (err error) {
 	return nil
 }
 
+// Response structure from list security objects query.
+type ListSobjectsResponse struct {
+	// Metadata indicating filtered and total count.
+	Metadata *Metadata `json:"metadata,omitempty"`
+	// List of security objects matching the filtering parameters.
+	Items []Sobject `json:"items,omitempty"`
+}
+
 func (r *ListSobjectsResponse) UnmarshalJSON(data []byte) error {
 	// Define an intermediate struct to decode the items array.
 	type response struct {
-		Md    Metadata  `json:"metadata,omitempty"`
-		Items []Sobject `json:"items,omitempty"`
+		Metadata *Metadata `json:"metadata,omitempty"`
+		Items    []Sobject `json:"items,omitempty"`
 	}
 
-	// Decode the JSON into the intermediate struct.
 	var resp1 response
-	var resp2 []Sobject
 	err1 := json.Unmarshal(data, &resp1)
-	err2 := json.Unmarshal(data, &resp2)
-
 	if err1 == nil {
 		r.Items = resp1.Items
-		r.Md = resp1.Md
+		r.Metadata = resp1.Metadata
 		return nil
 	}
 
+	var resp2 []Sobject
+	err2 := json.Unmarshal(data, &resp2)
 	if err2 == nil {
 		r.Items = resp2
+		r.Metadata = nil
 		return nil
 	}
-	if err1 != nil && err2 != nil {
-		return fmt.Errorf("Error in decoding ListSobjectResponse: %v, %v", err1, err2)
-	}
-	return nil
+
+	return fmt.Errorf("Error in decoding ListSobjectResponse: %v, %v", err1, err2)
 }
 
 type CustomMetadata map[string]string
