@@ -22,22 +22,16 @@ func sample_derive_key(client *sdkms.Client, objId string) {
 	var derivedName string = "Derived-Key"
 	deriveKeyMec := sdkms.DeriveKeyMechanismHkdf{
 		HashAlg: sdkms.DigestAlgorithmSha224,
-		Info:    someBytes([]byte("signing")),
-		Salt:    someBytes(generateRandom(16)),
+		Info:    sdkms.Some([]byte("signing")),
+		Salt:    sdkms.Some(generateRandom(16)),
 	}
 	ctx := context.Background()
-	var key sdkms.SobjectDescriptor
 
-	if objId != "" {
-		key = *sdkms.SobjectByID(objId)
-	} else {
-		key = *sdkms.SobjectByName(keyName)
-	}
 	deriveKeyReq := sdkms.DeriveKeyRequest{
 		Name:      &derivedName,
 		KeyType:   sdkms.ObjectTypeAria,
 		KeySize:   128,
-		Key:       &key,
+		Key:       sdkms.SobjectByID(objId),
 		Mechanism: sdkms.DeriveKeyMechanism{Hkdf: &deriveKeyMec},
 	}
 	deriveKeyResp, err := client.Derive(ctx, deriveKeyReq)

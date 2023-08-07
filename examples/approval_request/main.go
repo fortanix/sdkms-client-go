@@ -25,7 +25,7 @@ func main() {
 		Endpoint:   "https://sdkms.fortanix.com",
 	}
 	signReq := sdkms.SignRequest{
-		Data:    someBlob([]byte("hello, world")),
+		Data:    sdkms.Some([]byte("hello, world")),
 		HashAlg: sdkms.DigestAlgorithmSha256,
 		Key:     sdkms.SobjectByName(keyName),
 		Mode:    sdkms.SignatureModeRSA(sdkms.RsaSignaturePaddingPKCS1V15()),
@@ -84,5 +84,3 @@ func signWithApproval(client *sdkms.Client, req sdkms.SignRequest) (*sdkms.SignR
 		return nil, errors.Errorf("request was denied")
 	}
 }
-
-func someBlob(blob sdkms.Blob) *sdkms.Blob { return &blob }

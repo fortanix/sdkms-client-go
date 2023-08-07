@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	myAPIKey string = "<NDQxNTI1MTk.........RTQ3B0RVk4NWNYNEl3>"
+	myAPIKey string = "ZTE4ZWRjNjEtYj..."
 )
 
 func main() {
@@ -25,10 +25,10 @@ func main() {
 	ctx := context.Background()
 	// Create a new sobject
 	sobjectReq := sdkms.SobjectRequest{
-		Name:    someString(fmt.Sprintf("TestKey-%v", randomName(8))),
-		ObjType: someObjectType(sdkms.ObjectTypeAes),
-		KeySize: someUInt32(uint32(256)),
-		KeyOps:  someKeyOperations(sdkms.KeyOperationsEncrypt | sdkms.KeyOperationsDecrypt | sdkms.KeyOperationsAppmanageable),
+		Name:    sdkms.Some(fmt.Sprintf("TestKey-%v", randomName(8))),
+		ObjType: sdkms.Some(sdkms.ObjectTypeAes),
+		KeySize: sdkms.Some(uint32(256)),
+		KeyOps:  sdkms.Some(sdkms.KeyOperationsEncrypt | sdkms.KeyOperationsDecrypt | sdkms.KeyOperationsAppmanageable),
 	}
 	sobject, err := client.CreateSobject(ctx, sobjectReq)
 	if err != nil {
@@ -37,20 +37,28 @@ func main() {
 	fmt.Printf("Created sobject: %v\n", sobjectToString(sobject))
 
 	// List all sobjects
-	withMetadata := true
-	queryParams := sdkms.ListSobjectsParams{
-		Sort: &sdkms.SobjectSort{
-			ByName: &sdkms.SobjectSortByName{},
-		},
-		WithMetadata: &withMetadata,
-	}
-	keys, err := client.ListSobjects(ctx, &queryParams)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("\n\nListing all sobjects (%v):\n", len(keys.Items))
-	for _, key := range keys.Items {
-		fmt.Printf("  %v\n", sobjectToString(&key))
+	var start *sdkms.UUID
+	for {
+		queryParams := sdkms.ListSobjectsParams{
+			Sort: &sdkms.SobjectSort{
+				ByKid: &sdkms.SobjectSortByKid{
+					Start: start,
+				},
+			},
+		}
+		keys, err := client.ListSobjects(ctx, &queryParams)
+		if err != nil {
+			log.Fatal(err)
+		}
+		n := len(keys.Items)
+		if n == 0 {
+			break
+		}
+		fmt.Printf("\nListing %v security objects:\n", n)
+		for _, key := range keys.Items {
+			fmt.Printf("%v\n", sobjectToString(&key))
+		}
+		start = keys.Items[n-1].Kid
 	}
 
 	// Delete the sobject that was created before
@@ -60,13 +68,8 @@ func main() {
 	fmt.Printf("\n\nSobject %v deleted\n", *sobject.Kid)
 }
 
-func sobjectToString(sobject *sdkms.Sobject) string {
-	created, err := sobject.CreatedAt.Std()
-	if err != nil {
-		log.Fatalf("Failed to convert sobject.CreatedAt: %v", err)
-	}
-	return fmt.Sprintf("{ %v %#v group(%v) enabled: %v created: %v}",
-		*sobject.Kid, *sobject.Name, *sobject.GroupID, sobject.Enabled, created.Local())
+func sobjectToString(key *sdkms.Sobject) string {
+	return fmt.Sprintf("%11v %v %#v", key.ObjType, *key.Kid, *key.Name)
 }
 
 func randomName(size uint) string {
@@ -77,9 +80,3 @@ func randomName(size uint) string {
 	}
 	return string(b)
 }
-
-func someString(val string) *string { return &val }
-func someUInt32(val uint32) *uint32 { return &val }
-
-func someObjectType(val sdkms.ObjectType) *sdkms.ObjectType          { return &val }
-func someKeyOperations(val sdkms.KeyOperations) *sdkms.KeyOperations { return &val }

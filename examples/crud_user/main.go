@@ -52,7 +52,7 @@ func main() {
 	// Create a new app
 	permissions := sdkms.AppPermissionsEncrypt | sdkms.AppPermissionsDecrypt
 	app, err := client.CreateApp(ctx, nil, sdkms.AppRequest{
-		Name:         someString(fmt.Sprintf("TestApp-%v", randomName(8))),
+		Name:         sdkms.Some(fmt.Sprintf("TestApp-%v", randomName(8))),
 		AddGroups:    &sdkms.AppGroups{groupID: &permissions},
 		DefaultGroup: &groupID,
 	})
@@ -62,15 +62,29 @@ func main() {
 	fmt.Printf("Created app: %v\n", appToString(app))
 
 	// List all apps
-	apps, err := client.ListApps(ctx, &sdkms.ListAppsParams{
-		GroupPermissions: someBoolean(true),
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("\n\nListing all apps (%v):\n", len(apps))
-	for _, app := range apps {
-		fmt.Printf("  %v\n", appToString(&app))
+	var start *sdkms.UUID
+	for {
+		queryParams := sdkms.ListAppsParams{
+			GroupPermissions: sdkms.Some(true),
+			Sort: sdkms.AppSort{
+				ByAppID: &sdkms.AppSortByAppId{
+					Start: start,
+				},
+			},
+		}
+		apps, err := client.ListApps(ctx, &queryParams)
+		if err != nil {
+			log.Fatal(err)
+		}
+		n := len(apps)
+		if n == 0 {
+			break
+		}
+		fmt.Printf("\nListing %v apps:\n", n)
+		for _, app := range apps {
+			fmt.Printf("  %v\n", appToString(&app))
+		}
+		start = sdkms.Some(apps[n-1].AppID)
 	}
 
 	// Delete the app that was created before
@@ -103,6 +117,3 @@ func randomName(size uint) string {
 	}
 	return string(b)
 }
-
-func someString(val string) *string { return &val }
-func someBoolean(val bool) *bool    { return &val }
