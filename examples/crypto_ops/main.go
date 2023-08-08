@@ -15,9 +15,47 @@ import (
 
 const (
 	myAPIEndpoint string = "https://sit.smartkey.io"
-	myAPIKey      string = "....J4dXVEWWw4MjRBQlFpRmpyR01OS3pwSDdTTEF6RUZfb25kZVk5enJOQkh...."
-	keyName       string = "< >"
+	myAPIKey      string = "J4dXVEWWw4M...."
 )
+
+func main() {
+	client := sdkms.Client{
+		HTTPClient: http.DefaultClient,
+		Auth:       sdkms.APIKey(myAPIKey),
+		Endpoint:   myAPIEndpoint,
+	}
+	ctx := context.Background()
+	// Import a secret
+	KeyVal := generateRandom(32)
+	req := sdkms.SobjectRequest{
+		Name:    sdkms.Some(fmt.Sprintf("TestKey-%v", generateRandom(8))),
+		ObjType: sdkms.Some(sdkms.ObjectTypeSecret),
+		KeySize: sdkms.Some(uint32(256)),
+		KeyOps:  sdkms.Some(sdkms.KeyOperationsExport | sdkms.KeyOperationsAppmanageable | sdkms.KeyOperationsDerivekey),
+		Value:   &KeyVal,
+	}
+	secretKey, err := client.ImportSobject(ctx, req)
+	if err != nil {
+		log.Fatalf("Error importing Sobject %v: ", err)
+	}
+	log.Printf("Imported %v sobject %#v\n", secretKey.ObjType, *secretKey.Name)
+
+	// Generate an AES key
+	req = sdkms.SobjectRequest{
+		Name:    sdkms.Some(fmt.Sprintf("TestKey-%v", generateRandom(8))),
+		ObjType: sdkms.Some(sdkms.ObjectTypeAes),
+		KeySize: sdkms.Some(uint32(256)),
+		KeyOps:  sdkms.Some(sdkms.KeyOperationsEncrypt | sdkms.KeyOperationsDecrypt | sdkms.KeyOperationsAppmanageable),
+	}
+	aesKey, err := client.CreateSobject(ctx, req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("Created %v sobject: %#v\n", aesKey.ObjType, *aesKey.Name)
+
+	sample_derive_key(&client, *secretKey.Kid)
+	sample_encrypt_decrypt(&client, *aesKey.Kid)
+}
 
 func generateRandom(length int) []byte {
 	rand.Seed(time.Now().Unix())
@@ -27,37 +65,3 @@ func generateRandom(length int) []byte {
 	}
 	return ran_str
 }
-
-func main() {
-	client := sdkms.Client{
-		HTTPClient: http.DefaultClient,
-		Auth:       sdkms.APIKey(myAPIKey),
-		Endpoint:   myAPIEndpoint,
-	}
-	ctx := context.Background()
-	KeyVal := generateRandom(32)
-	sobjectReq := sdkms.SobjectRequest{
-		Name:    someString(fmt.Sprintf("TestKey-%v", generateRandom(8))),
-		ObjType: someObjectType(sdkms.ObjectTypeSecret),
-		KeySize: someUInt32(uint32(256)),
-		KeyOps:  someKeyOperations(sdkms.KeyOperationsExport | sdkms.KeyOperationsAppmanageable | sdkms.KeyOperationsDerivekey),
-		Value:   &KeyVal,
-	}
-	sobjectResp, err := client.ImportSobject(ctx, sobjectReq)
-	if err != nil {
-		log.Fatalf("!!! Error importing Sobject %v: ", err)
-	}
-	log.Printf("%v sobject imported successfully", sdkms.ObjectTypeSecret)
-	// ---- Use this function to run encrypt_decrypt example case ----
-	// sample_encrypt_decrypt(&client, *sobjectResp.Kid)
-
-	// ---- Use this function to run derivation example case ----
-	sample_derive_key(&client, *sobjectResp.Kid)
-}
-
-func someString(val string) *string { return &val }
-func someUInt32(val uint32) *uint32 { return &val }
-func someBytes(val []byte) *[]byte  { return &val }
-
-func someObjectType(val sdkms.ObjectType) *sdkms.ObjectType          { return &val }
-func someKeyOperations(val sdkms.KeyOperations) *sdkms.KeyOperations { return &val }

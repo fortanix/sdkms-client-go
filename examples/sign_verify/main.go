@@ -24,7 +24,7 @@ func main() {
 	}
 	ctx := context.Background()
 	signReq := sdkms.SignRequest{
-		Data:    someBlob([]byte("hello, world")),
+		Data:    sdkms.Some([]byte("hello, world")),
 		HashAlg: sdkms.DigestAlgorithmSha256,
 		Key:     sdkms.SobjectByName(keyName),
 		Mode:    sdkms.SignatureModeRSA(sdkms.RsaSignaturePaddingPSSMGF1(sdkms.DigestAlgorithmSha1)),
@@ -37,7 +37,7 @@ func main() {
 		Signature: signResp.Signature,
 		Key:       sdkms.SobjectByName(keyName),
 		HashAlg:   sdkms.DigestAlgorithmSha256,
-		Data:      someBlob([]byte("hello, world")),
+		Data:      sdkms.Some([]byte("hello, world")),
 		Mode:      sdkms.SignatureModeRSA(sdkms.RsaSignaturePaddingPSSMGF1(sdkms.DigestAlgorithmSha1)),
 	}
 	verifyResp, err := client.Verify(ctx, verifyReq)
@@ -46,5 +46,3 @@ func main() {
 	}
 	fmt.Printf("Verify result: %v\n", verifyResp.Result)
 }
-
-func someBlob(blob sdkms.Blob) *sdkms.Blob { return &blob }
