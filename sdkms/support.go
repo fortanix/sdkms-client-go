@@ -124,6 +124,50 @@ type batchResponseItem struct {
 	Body   json.RawMessage `json:"body"`
 }
 
+// BatchEncryptResponseItem is returned by BatchEncrypt operation
+type BatchEncryptResponseItem struct {
+	inner batchResponseItem
+}
+
+// UnmarshalJSON implements JSON unmarshalling for BatchEncryptResponseItem
+func (b *BatchEncryptResponseItem) UnmarshalJSON(data []byte) error {
+	return json.Unmarshal(data, &b.inner)
+}
+
+// Result returns the Encrypt operation result
+func (b *BatchEncryptResponseItem) Result() (*EncryptResponse, error) {
+	if b.inner.Error == nil {
+		var response EncryptResponse
+		if err := json.Unmarshal(b.inner.Body, &response); err != nil {
+			return nil, err
+		}
+		return &response, nil
+	}
+	return nil, newBackendError(int(b.inner.Status), *b.inner.Error)
+}
+
+// BatchDecryptResponseItem is returned by BatchDecrypt operation
+type BatchDecryptResponseItem struct {
+	inner batchResponseItem
+}
+
+// UnmarshalJSON implements JSON unmarshalling for BatchDecryptResponseItem
+func (b *BatchDecryptResponseItem) UnmarshalJSON(data []byte) error {
+	return json.Unmarshal(data, &b.inner)
+}
+
+// Result returns the Decrypt operation result
+func (b *BatchDecryptResponseItem) Result() (*DecryptResponse, error) {
+	if b.inner.Error == nil {
+		var response DecryptResponse
+		if err := json.Unmarshal(b.inner.Body, &response); err != nil {
+			return nil, err
+		}
+		return &response, nil
+	}
+	return nil, newBackendError(int(b.inner.Status), *b.inner.Error)
+}
+
 // BatchSignResponseItem is returned by BatchSign operation
 type BatchSignResponseItem struct {
 	inner batchResponseItem
@@ -314,6 +358,40 @@ const (
 )
 
 type HyperHttpMethod string
+type ZeroizedString string
+type ZeroizedBlob struct {
+	data []byte
+}
+
+func newZeroizedBlob(data []byte) *ZeroizedBlob {
+	return &ZeroizedBlob{data: data}
+}
+
+// MarshalJSON converts the internal `data` field to a base64-encoded string.
+func (zb ZeroizedBlob) MarshalJSON() ([]byte, error) {
+	// Encode the data as a base64 string
+	encoded := b64.StdEncoding.EncodeToString(zb.data)
+	// Return the JSON string
+	return json.Marshal(encoded)
+}
+
+// UnmarshalJSON converts a base64-encoded JSON string into the `data` field.
+func (zb *ZeroizedBlob) UnmarshalJSON(input []byte) error {
+	// Expect the input to be a JSON string
+	var base64String string
+	if err := json.Unmarshal(input, &base64String); err != nil {
+		return errors.New("ZeroizedBlob: expected a base64-encoded JSON string")
+	}
+
+	// Decode the base64 string into bytes
+	data, err := b64.StdEncoding.DecodeString(base64String)
+	if err != nil {
+		return errors.New("ZeroizedBlob: invalid base64-encoded data")
+	}
+
+	zb.data = data
+	return nil
+}
 
 // Common HTTP methods.
 //

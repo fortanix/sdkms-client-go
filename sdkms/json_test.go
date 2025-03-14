@@ -353,7 +353,7 @@ func Test_SobjectRekeyRequest(t *testing.T) {
 			input: SobjectRekeyRequest{
 				Dest: SobjectRequest{
 					Name:  Some("test2"),
-					Value: Some([]byte{1, 2, 3, 4}),
+					Value: Some(*newZeroizedBlob([]byte{1, 2, 3, 4})),
 				},
 			},
 			want: `{"name":"test2","value":"AQIDBA=="}`,
@@ -374,10 +374,16 @@ func Test_Account(t *testing.T) {
 						OnPrem: Some(struct{}{}),
 					},
 				},
+				OriginalPurpose: AccountPurposeType{
+					Standard: Some(struct{}{}),
+				},
+				Purpose: AccountPurpose{
+					Standard: Some(struct{}{}),
+				},
 			},
 			want: `{"acct_id":"91678454-39cc-4ba6-a076-858596d9f447","enabled":true,` +
 				`"mark_key_disable_when_deactivated":false,"name":"test account 1",` +
-				`"subscription":{"on_prem":{}}}`,
+				`"original_purpose":{"$type":"Standard"},"purpose":{"$type":"Standard"},"subscription":{"on_prem":{}}}`,
 		},
 		{
 			input: Account{
@@ -393,10 +399,16 @@ func Test_Account(t *testing.T) {
 					ApprovalRequestExpiry: Some(uint64(300)),
 					RetainExpiredRequests: Some(true),
 				},
+				OriginalPurpose: AccountPurposeType{
+					Standard: Some(struct{}{}),
+				},
+				Purpose: AccountPurpose{
+					Standard: Some(struct{}{}),
+				},
 			},
 			want: `{"acct_id":"91678454-39cc-4ba6-a076-858596d9f447","approval_request_expiry":300,` +
 				`"enabled":true,"mark_key_disable_when_deactivated":false,"name":"test account 1",` +
-				`"retain_expired_requests":true,"subscription":{"on_prem":{}}}`,
+				`"original_purpose":{"$type":"Standard"},"purpose":{"$type":"Standard"},"retain_expired_requests":true,"subscription":{"on_prem":{}}}`,
 		},
 	}
 	testJSON(t, tests)
