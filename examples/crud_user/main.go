@@ -76,15 +76,16 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		n := len(apps)
+		n := len(*apps.WithoutMetadata)
 		if n == 0 {
 			break
 		}
 		fmt.Printf("\nListing %v apps:\n", n)
-		for _, app := range apps {
+		appsList := *apps.WithoutMetadata
+		for _, app := range appsList {
 			fmt.Printf("  %v\n", appToString(&app))
 		}
-		start = sdkms.Some(apps[n-1].AppID)
+		start = sdkms.Some(appsList[n-1].AppID)
 	}
 
 	// Delete the app that was created before

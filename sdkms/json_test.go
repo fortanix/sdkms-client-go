@@ -353,7 +353,7 @@ func Test_SobjectRekeyRequest(t *testing.T) {
 			input: SobjectRekeyRequest{
 				Dest: SobjectRequest{
 					Name:  Some("test2"),
-					Value: Some(*newZeroizedBlob([]byte{1, 2, 3, 4})),
+					Value: Some([]byte{1, 2, 3, 4}),
 				},
 			},
 			want: `{"name":"test2","value":"AQIDBA=="}`,
