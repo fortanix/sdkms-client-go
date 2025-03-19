@@ -9,10 +9,7 @@ package sdkms
 import (
     "context"
     "encoding/json"
-    //"fmt"
     "net/http"
-    //"net/url"
-    //"strings"
     "github.com/pkg/errors"
 )
 

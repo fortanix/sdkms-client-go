@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	myAPIKey string = "NjNmNmRlM2ItYjQ4YS00YjJkLWJkNGQtY2Y2Y2Y4YTEwOGVlOm9mYzdKdzhpVmJEaGZBTzU2aWtCNzNGV0pJYlhkMkE4RnJvLXo5eE53LUI3Zkp5WWlSNWIxdWZ5a0E3ekNkMWlDSGYxcjg2aUNDR29qNmE2aEpFcGJB"
+	myAPIKey string = "InputYourAPIKeyHere"
 )
 
 func main() {

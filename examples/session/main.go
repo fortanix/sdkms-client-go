@@ -1,4 +1,4 @@
-	// Session example
+// Session example
 // This program demonstrates how to use the Authentication APIs to establish a session
 package main
 
@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	myAPIKey string = "N2MwYThlYjgtMGZkNS00OWIxLWFkOWUt..."
+	myAPIKey string = "InputYourAPIKeyHere..."
 	keyName  string = "RSA Key"
 )
 

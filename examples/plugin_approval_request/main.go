@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	myAPIKey string = "M2VkNjg4ODgtMTFmOC00YTNiLTg0NmEt..."
+	myAPIKey string = "InputYourAPIKeyHere..."
 	pluginID string = "3c846349-ee93-..."
 )
 
