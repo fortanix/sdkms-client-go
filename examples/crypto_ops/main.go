@@ -15,7 +15,7 @@ import (
 
 const (
 	myAPIEndpoint string = "https://sit.smartkey.io"
-	myAPIKey      string = "J4dXVEWWw4M...."
+	myAPIKey      string = "InputYourAPIKeyHere...."
 )
 
 func main() {

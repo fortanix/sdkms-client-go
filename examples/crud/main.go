@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	myAPIKey string = "ZTE4ZWRjNjEtYj..."
+	myAPIKey string = "InputYourAPIKeyHere"
 )
 
 func main() {
@@ -20,7 +20,7 @@ func main() {
 	client := sdkms.Client{
 		HTTPClient: http.DefaultClient,
 		Auth:       sdkms.APIKey(myAPIKey),
-		Endpoint:   "https://sdkms.fortanix.com",
+		Endpoint:   "https://sit.smartkey.io",
 	}
 	ctx := context.Background()
 	// Create a new sobject

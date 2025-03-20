@@ -14,15 +14,15 @@ import (
 )
 
 const (
-	myAPIKey string = "M2VkNjg4ODgtMTFmOC00YTNiLTg0NmEt..."
-	keyName  string = "very important key"
+	myAPIKey string = "YourAPIKeyHere"
+	keyName  string = "RSA_Key"
 )
 
 func main() {
 	client := sdkms.Client{
 		HTTPClient: http.DefaultClient,
 		Auth:       sdkms.APIKey(myAPIKey),
-		Endpoint:   "https://sdkms.fortanix.com",
+		Endpoint:   "https://sit.smartkey.io",
 	}
 	signReq := sdkms.SignRequest{
 		Data:    sdkms.Some([]byte("hello, world")),

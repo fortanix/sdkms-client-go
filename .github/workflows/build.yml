@@ -1,0 +1,47 @@
+# This workflow will build a golang project
+
+name: Go
+
+on:
+  push:
+    paths:
+        - ".github/workflows/build.yml"
+        - "go.mod"
+        - "go.sum"
+        - "**.go"
+    branches: [ "master" ]
+  pull_request:
+    paths:
+      - ".github/workflows/build.yml"
+      - "go.mod"
+      - "go.sum"
+      - "**.go"
+    branches: [ "master" ]
+  # This CI will be triigerred on any merge_group events
+  merge_group:
+
+jobs:
+
+  build:
+    name: "Build, Test, Vet, Make"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: go.mod
+        cache-dependency-path: go.sum
+
+    - name: Build
+      run: go build -v ./...
+
+    - name: Test
+      run: go test -v ./...
+
+    - name: Vet
+      run: go vet ./...
+
+    - name: Make
+      run: cd examples && make

@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	myAPIKey string = "N2MwYThlYjgtMGZkNS00OWIxLWFkOWUt..."
+	myAPIKey string = "InputYourAPIKeyHere..."
 	pluginID string = "3760ecfe-b6f5-..."
 )
 

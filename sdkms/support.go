@@ -124,6 +124,50 @@ type batchResponseItem struct {
 	Body   json.RawMessage `json:"body"`
 }
 
+// BatchEncryptResponseItem is returned by BatchEncrypt operation
+type BatchEncryptResponseItem struct {
+	inner batchResponseItem
+}
+
+// UnmarshalJSON implements JSON unmarshalling for BatchEncryptResponseItem
+func (b *BatchEncryptResponseItem) UnmarshalJSON(data []byte) error {
+	return json.Unmarshal(data, &b.inner)
+}
+
+// Result returns the Encrypt operation result
+func (b *BatchEncryptResponseItem) Result() (*EncryptResponse, error) {
+	if b.inner.Error == nil {
+		var response EncryptResponse
+		if err := json.Unmarshal(b.inner.Body, &response); err != nil {
+			return nil, err
+		}
+		return &response, nil
+	}
+	return nil, newBackendError(int(b.inner.Status), *b.inner.Error)
+}
+
+// BatchDecryptResponseItem is returned by BatchDecrypt operation
+type BatchDecryptResponseItem struct {
+	inner batchResponseItem
+}
+
+// UnmarshalJSON implements JSON unmarshalling for BatchDecryptResponseItem
+func (b *BatchDecryptResponseItem) UnmarshalJSON(data []byte) error {
+	return json.Unmarshal(data, &b.inner)
+}
+
+// Result returns the Decrypt operation result
+func (b *BatchDecryptResponseItem) Result() (*DecryptResponse, error) {
+	if b.inner.Error == nil {
+		var response DecryptResponse
+		if err := json.Unmarshal(b.inner.Body, &response); err != nil {
+			return nil, err
+		}
+		return &response, nil
+	}
+	return nil, newBackendError(int(b.inner.Status), *b.inner.Error)
+}
+
 // BatchSignResponseItem is returned by BatchSign operation
 type BatchSignResponseItem struct {
 	inner batchResponseItem
@@ -314,6 +358,9 @@ const (
 )
 
 type HyperHttpMethod string
+type ZeroizedString string
+
+type ZeroizedBlob = Blob
 
 // Common HTTP methods.
 //

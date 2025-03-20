@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	myAPIKey string = "N2MwYThlYjgtMGZkNS00OWIxLWFkOWUt..."
+	myAPIKey string = "InputYourAPIKeyHere..."
 	keyName  string = "RSA Key"
 )
 
