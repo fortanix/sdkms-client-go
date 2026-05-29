@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -60,6 +61,7 @@ func (c *Client) fetchWithAuth(ctx context.Context, method, path string, body in
 
 	if dst, ok := ctx.Value("ResponseHeader").(http.Header); ok && dst != nil {
 		for k, v := range resp.Header.Clone() {
+			log.Printf("header val: %v\n", v)
 			dst[k] = v
 		}
 	}
