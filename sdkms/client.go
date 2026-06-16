@@ -12,7 +12,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -41,6 +40,22 @@ func (c *Client) url(path string) string {
 	return DefaultAPIEndpoint + path
 }
 
+type internalContextKey string
+
+const rawResponse internalContextKey = internalContextKey("sdkms-client-raw-response")
+
+// Calling this function causes the raw HTTP response to be included in
+// the context when an API call is made. It can then be extracted by calling [GetRawResponse].
+func IncludeRawResponse(ctx context.Context) context.Context {
+	return context.WithValue(ctx, rawResponse, new(http.Response))
+}
+
+// Get the raw response of an API call from the context. The context has to be
+// prepared by calling [IncludeRawResponse] before making the API call.
+func GetRawResponse(ctx context.Context) *http.Response {
+	return ctx.Value(rawResponse).(*http.Response)
+}
+
 func (c *Client) fetchWithAuth(ctx context.Context, method, path string, body interface{}, response interface{}, auth Authorization) error {
 	reqBody, err := prepareRequestBody(body)
 	if err != nil {
@@ -57,6 +72,12 @@ func (c *Client) fetchWithAuth(ctx context.Context, method, path string, body in
 	if err != nil {
 		return errors.Wrap(err, "could not make HTTP request")
 	}
+
+	respInCtx, ok := ctx.Value(rawResponse).(*http.Response)
+	if ok {
+		*respInCtx = *resp
+	}
+
 	return parseResponse(resp, response)
 }
 
@@ -80,10 +101,12 @@ func prepareRequestBody(body interface{}) (io.Reader, error) {
 
 func parseResponse(resp *http.Response, response interface{}) error {
 	defer resp.Body.Close()
-	buf, err := ioutil.ReadAll(resp.Body)
+	buf, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return errors.Wrap(err, "could not read response body")
 	}
+	// put the response body back in case the client wants it
+	resp.Body = io.NopCloser(bytes.NewReader(buf))
 	if resp.StatusCode >= 300 {
 		return newBackendError(resp.StatusCode, string(buf))
 	}
