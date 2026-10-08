@@ -42,7 +42,7 @@ func main() {
 	ctx := context.Background()
 	input := pluginInput{
 		Data:    sdkms.Some([]byte("hello, world!")),
-		HashAlg: sdkms.DigestAlgorithmSha256,
+		HashAlg: sdkms.Some(sdkms.DigestAlgorithmSha256),
 	}
 	approvalReq, err := client.RequestApprovalToInvokePlugin(ctx, pluginID, input, nil)
 	if err != nil {

@@ -11,7 +11,6 @@ import (
     "encoding/json"
     "fmt"
     "net/http"
-    "net/url"
     "strings"
     "github.com/pkg/errors"
 )
@@ -202,7 +201,7 @@ type CredentialSortByCredentialName struct {
     Order Order `json:"order"`
 }
 func (x CredentialSort) urlEncode(v map[string][]string) error {
-    if x.ByCredentialId != nil && x.ByCredentialName != nil {
+    if x.ByCredentialID != nil && x.ByCredentialName != nil {
         return errors.New("CredentialSort can be either ByCredentialId or ByCredentialName")
     }
     if x.ByCredentialID != nil {

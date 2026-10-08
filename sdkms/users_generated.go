@@ -8,12 +8,9 @@ package sdkms
 
 import (
     "context"
-    "encoding/json"
     "fmt"
     "net/http"
-    "net/url"
     "strings"
-    "github.com/pkg/errors"
 )
 
 // This represents the authenticator's response to a client’s request

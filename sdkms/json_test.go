@@ -371,7 +371,7 @@ func Test_Account(t *testing.T) {
 				Enabled: true,
 				Subscription: Subscription{
 					SubscriptionType: SubscriptionType{
-						OnPrem: Some(struct{}{}),
+						OnPrem: Some(&OnPremSubscriptionType{}),
 					},
 				},
 				OriginalPurpose: AccountPurposeType{
@@ -392,7 +392,7 @@ func Test_Account(t *testing.T) {
 				Enabled: true,
 				Subscription: Subscription{
 					SubscriptionType: SubscriptionType{
-						OnPrem: Some(struct{}{}),
+						OnPrem: Some(&OnPremSubscriptionType{}),
 					},
 				},
 				ApprovalRequestSettings: ApprovalRequestSettings{

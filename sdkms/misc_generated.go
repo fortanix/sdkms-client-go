@@ -11,7 +11,6 @@ import (
     "encoding/json"
     "fmt"
     "net/http"
-    "net/url"
     "strings"
     "github.com/pkg/errors"
 )
@@ -293,7 +292,7 @@ func (c *Client) GetHealth(ctx context.Context, queryParameters *HealthParams) e
     if queryParameters != nil {
         q, err := encodeURLParams(queryParameters)
         if err != nil {
-            return nil, err
+            return err
         }
         u = fmt.Sprintf("%v?%v", u, q)
     }

@@ -25,7 +25,7 @@ func main() {
 	ctx := context.Background()
 	signReq := sdkms.SignRequest{
 		Data:    sdkms.Some([]byte("hello, world")),
-		HashAlg: sdkms.DigestAlgorithmSha256,
+		HashAlg: sdkms.Some(sdkms.DigestAlgorithmSha256),
 		Key:     sdkms.SobjectByName(keyName),
 		Mode:    sdkms.SignatureModeRSA(sdkms.RsaSignaturePaddingPSSMGF1(sdkms.DigestAlgorithmSha1)),
 	}
@@ -36,7 +36,7 @@ func main() {
 	verifyReq := sdkms.VerifyRequest{
 		Signature: signResp.Signature,
 		Key:       sdkms.SobjectByName(keyName),
-		HashAlg:   sdkms.DigestAlgorithmSha256,
+		HashAlg:   sdkms.Some(sdkms.DigestAlgorithmSha256),
 		Data:      sdkms.Some([]byte("hello, world")),
 		Mode:      sdkms.SignatureModeRSA(sdkms.RsaSignaturePaddingPSSMGF1(sdkms.DigestAlgorithmSha1)),
 	}

@@ -11,7 +11,6 @@ import (
     "encoding/json"
     "fmt"
     "net/http"
-    "net/url"
     "strings"
     "github.com/pkg/errors"
 )
@@ -589,7 +588,7 @@ type AppSortByAppName struct {
     Start *string `json:"start,omitempty"`
 }
 func (x AppSort) urlEncode(v map[string][]string) error {
-    if x.ByAppId != nil && x.ByAppName != nil {
+    if x.ByAppID != nil && x.ByAppName != nil {
         return errors.New("AppSort can be either ByAppId or ByAppName")
     }
     if x.ByAppID != nil {

@@ -7,12 +7,8 @@
 package sdkms
 
 import (
-    "context"
     "encoding/json"
     "fmt"
-    "net/http"
-    "net/url"
-    "strings"
     "github.com/pkg/errors"
 )
 
@@ -3378,13 +3374,13 @@ type GroupSortByGroupName struct {
     PreviousSortValue *string `json:"previous_sort_value,omitempty"`
 }
 func (x GroupSort) urlEncode(v map[string][]string) error {
-    if x.ByGroupId != nil && x.ByGroupName != nil {
+    if x.ByGroupID != nil && x.ByGroupName != nil {
         return errors.New("GroupSort can be either ByGroupId or ByGroupName")
     }
     if x.ByGroupID != nil {
         v["sort_by"] = []string{"group_id" + string(x.ByGroupID.Order)}
-        if x.ByGroupID.PreviousId != nil {
-            v["previous_id"] = []string{fmt.Sprintf("%v", *x.ByGroupID.PreviousId)}
+        if x.ByGroupID.PreviousID != nil {
+            v["previous_id"] = []string{fmt.Sprintf("%v", *x.ByGroupID.PreviousID)}
         }
     }
     if x.ByGroupName != nil {
