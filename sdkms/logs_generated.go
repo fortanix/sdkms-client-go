@@ -8,8 +8,12 @@ package sdkms
 
 import (
     "context"
+    "encoding/json"
     "fmt"
     "net/http"
+    "net/url"
+    "strings"
+    "github.com/pkg/errors"
 )
 
 type ActionType string
@@ -33,6 +37,10 @@ type EsAuditLog struct {
     ActorType string `json:"actor_type"`
     // Audit log message
     Message string `json:"message"`
+    // Additional information not already captured by
+    // `message`. In some cases, the format might
+    // be customized by the client.
+    ClientProvidedContext *string `json:"client_provided_context,omitempty"`
     // Severity of event
     Severity SeverityLevel `json:"severity"`
     // Time of Event

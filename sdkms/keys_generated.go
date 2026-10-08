@@ -11,6 +11,7 @@ import (
     "encoding/json"
     "fmt"
     "net/http"
+    "net/url"
     "strings"
     "github.com/pkg/errors"
 )
@@ -18,7 +19,7 @@ import (
 // Request to copy a security object.
 type CopySobjectRequest struct {
     // Unique identifier of the security object to be copied.
-    Key SobjectDescriptor `json:"key"`
+    Key SobjectDescriptorPersisted `json:"key"`
     // Properties for the new security object.
     Dest SobjectRequest `json:"dest"`
 }
@@ -45,7 +46,7 @@ func (x *CopySobjectRequest) UnmarshalJSON(data []byte) error {
         return err
     }
     var r struct {
-    Key SobjectDescriptor `json:"key"`
+    Key SobjectDescriptorPersisted `json:"key"`
     }
     if err := json.Unmarshal(data, &r); err != nil {
         return err
@@ -260,7 +261,31 @@ type ListSobjectsParams struct {
     ShowPubKey *bool `json:"show_pub_key,omitempty"`
     // Show key check value for security object(s).
     ShowKcv *bool `json:"show_kcv,omitempty"`
-    // Provide custom filtering query.
+    // Allows filtering Sobjects based on various attributes, including kid, key_size, and more.
+    // The support portal section [2.8.1 Filtering Security Objects Using DSM REST API](https://support.fortanix.com/docs/users-guide-fortanix-data-security-manager-key-lifecycle-management#281-filtering-security-objects-using-dsm-rest-api) explains how to
+    // compose various queries using the supported filter operations.
+    //
+    // The following examples illustrate how to apply these filters when listing security objects:
+    // - `filter: {"kid":{"$text":{"$search":"1e70c17a-78c3-4fd9-83f5-dbea8641147a"}}}`
+    // - `filter: {"name":{"$text":{"$search":"13F977EE2B857998"}}}`
+    // - `filter: {"state":{"$eq":"Deactivated"}}`
+    // - `filter: {"key_ops":{"$any":{"$or":[{"$eq":"ENCRYPT"},{"$eq":"DECRYPT"},{"$eq":"WRAPKEY"},{"$eq":"UNWRAPKEY"}]}}}`
+    // - `filter: {"group_name":{"$text":{"$search":"Test_Group"}}}`
+    // - `filter: {"creator_name":{"$text":{"$search":"key creator"}}}`
+    // - `filter: {"$and":[{"creator_type":{"$in":["App","User","Plugin"]}},{"obj_type":{"$eq":"RSA"}}, {"enabled":{"$eq":"false"}}]}`
+    // - `filter: {"$and":[{"key_size":{"$gte":256}},{"obj_type":{"$eq":"AES"}}]}`
+    // - `filter: {"custom_attributes.custom":{"$text":{"$search":"1"}}}`
+    // - `filter: {"created_at":{"$lt":1739794080}}`
+    // - `filter: {"key_ops":{"$all":{"$ne":"HIGHVOLUME"}}}`
+    // - `filter: {"description":{"$text":{"$search":"BIPS32"}}}`
+    // - `filter: {"$and": [{"expires":{"$lt":1739794200}},{"expires":{"$gte":1741001700}},{"obj_type":{"$nin":["OPAQUE","SECRET"]}},{"creator_type":{"$eq":"App"}}]}`
+    // - `filter: {"$and":[{"obj_type":{"$eq":"AES"}},{"obj_type":{"$nin":["DES3","HMAC"]}},{"expires":{"$lt":1739794200}},{"state":{"$nin":["Compromise","Destroyed"]}}]}`
+    // - `filter: {"$and": [{"key_size": 256}, {"state":{"$eq":"Deactivated"}}, {"name":{"$text":{"$search":"13F977EE2B857998"}}}]`
+    // - `filter: {"$and":[{"obj_type":{"$in":["AES","DES3"]}},{"creator_type":{"$eq":"User"}}, {"state":{"$ne":"Compromised"}}, {"creator_id":{"$text":{"$search":"542c9eeb-333c-4b30-b0c6-b73260866cfb"}}}]}`
+    // - `filter: {"wrapping_key":{"$text":{"$search":"3acc3178-b1df-42e9-83c1-0c667119a132"}}}`
+    // - `filter: {"group_id":{"$text":{"$search":"fde289c5-55bd-48d5-b9b9-2fb2dc14388f"}}}`
+    // - `filter: {"creator_id":{"$text":{"$search":"542c9eeb-333c-4b30-b0c6-b73260866cfb"}}}`
+    // - `filter: {"enabled":{"$eq":"true"}}`
     Filter *string `json:"filter,omitempty"`
 }
 func (x ListSobjectsParams) urlEncode(v map[string][]string) error {
@@ -443,6 +468,8 @@ type SobjectRequest struct {
     ActivationDate *Time `json:"activation_date,omitempty"`
     // AES specific options.
     Aes *AesOptions `json:"aes,omitempty"`
+    // Whether this security object can be used/referenced by a credential object.
+    AllowCredentialUse *bool `json:"allow_credential_use,omitempty"`
     // Whether the sign operation response contains hash or data as output.
     AllowSignHash *bool `json:"allow_sign_hash,omitempty"`
     // ARIA specific options.
@@ -473,7 +500,7 @@ type SobjectRequest struct {
     Enabled *bool `json:"enabled,omitempty"`
     // This export policy determines how exportable keys (ones with the `EXPORT` permission) may be exported.
     ExportPolicy *SobjectExportPolicy `json:"export_policy,omitempty"`
-    // Information specific to an external KMS. Currently, it only has AWS related information.
+    // Information to describe a specific external KMS object.
     External *ExternalKmsInfo `json:"external,omitempty"`
     // FPE specific options.
     Fpe *FpeOptions `json:"fpe,omitempty"`
@@ -492,10 +519,10 @@ type SobjectRequest struct {
     Links *KeyLinks `json:"links,omitempty"`
     // LMS specific options.
     Lms *LmsOptions `json:"lms,omitempty"`
-    // ML-DSA specific options (beta).
-    MldsaBeta *MlDsaBetaOptions `json:"mldsa_beta,omitempty"`
-    // ML-KEM specific options (beta).
-    MlkemBeta *MlKemBetaOptions `json:"mlkem_beta,omitempty"`
+    // ML-DSA specific options.
+    Mldsa *MlDsaOptions `json:"mldsa,omitempty"`
+    // ML-KEM specific options.
+    Mlkem *MlKemOptions `json:"mlkem,omitempty"`
     // Name of the security object.
     Name *string `json:"name,omitempty"`
     // Type of security object.
@@ -511,6 +538,8 @@ type SobjectRequest struct {
     Rsa *RsaOptions `json:"rsa,omitempty"`
     // Seed options.
     Seed *SeedOptions `json:"seed,omitempty"`
+    // Slip10 specific options.
+    Slip10 *Slip10Options `json:"slip10,omitempty"`
     // Security object operational state.
     State *SobjectState `json:"state,omitempty"`
     // If set to true, the security object will cease to exist after session ends.
@@ -633,6 +662,21 @@ func (c *Client) ActivateSobject(ctx context.Context, key_id string) error {
         return err
     }
     return nil
+}
+
+func (c *Client) RequestApprovalToActivateSobject(
+    ctx context.Context,    
+key_id string,
+    description *string) (*ApprovalRequest, error) {
+    u := "/crypto/v1/keys/:key_id/activate"
+    u = strings.NewReplacer(":key_id", key_id).Replace(u)
+    req := ApprovalRequestRequest{
+        Method:      Some(http.MethodPost),
+        Operation:   &u,
+        Body:        nil,
+        Description: description,
+    }
+    return c.CreateApprovalRequest(ctx, req)
 }
 
 // Make a copy of a security object.

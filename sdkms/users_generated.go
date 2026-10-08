@@ -8,9 +8,12 @@ package sdkms
 
 import (
     "context"
+    "encoding/json"
     "fmt"
     "net/http"
+    "net/url"
     "strings"
+    "github.com/pkg/errors"
 )
 
 // This represents the authenticator's response to a client’s request
@@ -41,6 +44,11 @@ type AuthenticatorAttestationResponse struct {
     AttestationObject Base64UrlSafe `json:"attestationObject"`
 }
 
+type ChangeEmailRequest struct {
+    CurrentPassword ZeroizedString `json:"current_password"`
+    NewEmail string `json:"new_email"`
+}
+
 type ConfirmEmailRequest struct {
     ConfirmToken ZeroizedString `json:"confirm_token"`
 }
@@ -69,6 +77,20 @@ type FidoAddDeviceRequest struct {
 type ForgotPasswordRequest struct {
     UserEmail string `json:"user_email"`
     RecaptchaResponse *string `json:"recaptcha_response,omitempty"`
+}
+
+type GetUserParams struct {
+    // Controls whether groups and explicit_groups fields are present in the response.
+    // Not including the groups field in the response can reduce the latency of the API,
+    // especially when the account contains a large number of groups and a large number
+    // of users with account-wide roles.
+    WithGroups *WithGroups `json:"with_groups,omitempty"`
+}
+func (x GetUserParams) urlEncode(v map[string][]string) error {
+    if x.WithGroups != nil {
+        v["with_groups"] = []string{fmt.Sprintf("%v", *x.WithGroups)}
+    }
+    return nil
 }
 
 type GetUserPermissionsParams struct {
@@ -102,6 +124,11 @@ type ListUsersParams struct {
     Limit *uint `json:"limit,omitempty"`
     Offset *uint `json:"offset,omitempty"`
     Sort UserSort `json:"sort"`
+    // Controls whether groups and explicit_groups fields are present in the response.
+    // Not including the groups field in the response can reduce the latency of the API,
+    // especially when the account contains a large number of groups and a large number
+    // of users with account-wide roles.
+    WithGroups *WithGroups `json:"with_groups,omitempty"`
 }
 func (x ListUsersParams) urlEncode(v map[string][]string) error {
     if x.GroupID != nil {
@@ -118,6 +145,9 @@ func (x ListUsersParams) urlEncode(v map[string][]string) error {
     }
     if err := x.Sort.urlEncode(v); err != nil {
         return err
+    }
+    if x.WithGroups != nil {
+        v["with_groups"] = []string{fmt.Sprintf("%v", *x.WithGroups)}
     }
     return nil
 }
@@ -189,9 +219,9 @@ type User struct {
     // This is similar to `groups` field except that it does not include groups due to
     // all-groups roles. Use this field to find out which group assignments can be
     // changed using `mod_groups` and `del_groups` fields in user update API.
-    ExplicitGroups map[UUID]UserGroupRole `json:"explicit_groups"`
+    ExplicitGroups *map[UUID]UserGroupRole `json:"explicit_groups,omitempty"`
     FirstName *string `json:"first_name,omitempty"`
-    Groups map[UUID]UserGroupRole `json:"groups"`
+    Groups *map[UUID]UserGroupRole `json:"groups,omitempty"`
     HasAccount *bool `json:"has_account,omitempty"`
     HasPassword *bool `json:"has_password,omitempty"`
     LastLoggedInAt *Time `json:"last_logged_in_at,omitempty"`
@@ -216,6 +246,7 @@ type UserRequest struct {
     DelMfaDevices *[]MfaDelDeviceRequest `json:"del_mfa_devices,omitempty"`
     DelU2fDevices *[]MfaDelDeviceRequest `json:"del_u2f_devices,omitempty"`
     Description *string `json:"description,omitempty"`
+    // Used to enable or disable a user's membership in an account. Always starts as enabled, regardless of input. Can be changed later by the account admin.
     Enable *bool `json:"enable,omitempty"`
     FirstName *string `json:"first_name,omitempty"`
     LastName *string `json:"last_name,omitempty"`
@@ -250,6 +281,28 @@ type ValidateTokenRequest struct {
 
 type ValidateTokenResponse struct {
     UserEmail string `json:"user_email"`
+}
+
+type WithGroups string
+
+// List of supported WithGroups values
+const (
+    // Both the `groups` and the `explicit_groups` fields are present in the response.
+    WithGroupsAll WithGroups = "all"
+    // The `groups` field is omitted from the response.
+    WithGroupsExplicitOnly WithGroups = "explicit_only"
+    // Both the `groups` and the `explicit_groups` fields are omitted from the response.
+    WithGroupsNone WithGroups = "none"
+)
+
+// Change user's email address. This requires identity verification.
+func (c *Client) ChangeEmail(ctx context.Context, body ChangeEmailRequest) (*User, error) {
+    u := "/sys/v1/users/change_email"
+    var r User
+    if err := c.fetch(ctx, http.MethodPost, u, &body, &r); err != nil {
+        return nil, err
+    }
+    return &r, nil
 }
 
 // Change user's password.
@@ -325,9 +378,16 @@ func (c *Client) GenerateRecoveryCodes(ctx context.Context) (*RecoveryCodes, err
 }
 
 // Lookup a user.
-func (c *Client) GetUser(ctx context.Context, user_id string) (*User, error) {
+func (c *Client) GetUser(ctx context.Context, user_id string, queryParameters *GetUserParams) (*User, error) {
     u := "/sys/v1/users/:user_id"
     u = strings.NewReplacer(":user_id", user_id).Replace(u)
+    if queryParameters != nil {
+        q, err := encodeURLParams(queryParameters)
+        if err != nil {
+            return nil, err
+        }
+        u = fmt.Sprintf("%v?%v", u, q)
+    }
     var r User
     if err := c.fetch(ctx, http.MethodGet, u, nil, &r); err != nil {
         return nil, err

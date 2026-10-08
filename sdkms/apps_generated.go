@@ -11,6 +11,7 @@ import (
     "encoding/json"
     "fmt"
     "net/http"
+    "net/url"
     "strings"
     "github.com/pkg/errors"
 )
@@ -26,7 +27,11 @@ type App struct {
     AppType string `json:"app_type"`
     // The authentication mechanisms for an application.
     AuthType *AppAuthType `json:"auth_type,omitempty"`
-    // Certificate expiration date.
+    // Certificate expiration date for apps that use client certificate or trusted CA auth.
+    // 
+    // For a client certificate app, this field is the expiry date of the client certifiate. For a trusted CA app, this field is the maximum expiry date among all configured root CA certs in the app's config.
+    // 
+    // For all other apps, this field is omitted.
     CertNotAfter *Time `json:"cert_not_after,omitempty"`
     // Client configurations that are set on the application level.
     // App level client configs override those set at group or account level.
@@ -61,6 +66,108 @@ type App struct {
     OauthConfig *AppOauthConfig `json:"oauth_config,omitempty"`
     // Application's role.
     Role AppRole `json:"role"`
+}
+func (x App) MarshalJSON() ([]byte, error) {
+    m := make(map[string]interface{})
+    { // x.AuthType is flattened
+        b, err := json.Marshal(&x.AuthType)
+        if err != nil {
+            return nil, err
+        }
+        f := make(map[string]interface{})
+        if err := json.Unmarshal(b, &f); err != nil {
+            return nil, err
+        }
+        for k, v := range f {
+            m[k] = v
+        }
+    }
+    if x.AccountMembership != nil {
+        m["account_membership"] = x.AccountMembership
+    }
+    m["acct_id"] = x.AcctID
+    m["app_id"] = x.AppID
+    m["app_type"] = x.AppType
+    if x.CertNotAfter != nil {
+        m["cert_not_after"] = x.CertNotAfter
+    }
+    m["client_configurations"] = x.ClientConfigurations
+    m["created_at"] = x.CreatedAt
+    m["creator"] = x.Creator
+    if x.DefaultGroup != nil {
+        m["default_group"] = x.DefaultGroup
+    }
+    if x.Description != nil {
+        m["description"] = x.Description
+    }
+    m["enabled"] = x.Enabled
+    m["groups"] = x.Groups
+    if x.Interface != nil {
+        m["interface"] = x.Interface
+    }
+    m["ip_address_policy"] = x.IpAddressPolicy
+    m["last_operations"] = x.LastOperations
+    if x.LastusedAt != nil {
+        m["lastused_at"] = x.LastusedAt
+    }
+    m["legacy_access"] = x.LegacyAccess
+    m["name"] = x.Name
+    if x.OauthConfig != nil {
+        m["oauth_config"] = x.OauthConfig
+    }
+    m["role"] = x.Role
+    return json.Marshal(&m)
+}
+func (x *App) UnmarshalJSON(data []byte) error {
+    if err := json.Unmarshal(data, &x.AuthType); err != nil {
+        return err
+    }
+    var r struct {
+    AccountMembership *AppAccountMembership `json:"account_membership,omitempty"`
+    AcctID UUID `json:"acct_id"`
+    AppID UUID `json:"app_id"`
+    AppType string `json:"app_type"`
+    CertNotAfter *Time `json:"cert_not_after,omitempty"`
+    ClientConfigurations ClientConfigurations `json:"client_configurations"`
+    CreatedAt Time `json:"created_at"`
+    Creator Principal `json:"creator"`
+    DefaultGroup *UUID `json:"default_group,omitempty"`
+    Description *string `json:"description,omitempty"`
+    Enabled bool `json:"enabled"`
+    Groups AppGroups `json:"groups"`
+    Interface *string `json:"interface,omitempty"`
+    IpAddressPolicy IpAddressPolicy `json:"ip_address_policy"`
+    LastOperations LastAppOperationTimestamp `json:"last_operations"`
+    LastusedAt *Time `json:"lastused_at,omitempty"`
+    LegacyAccess bool `json:"legacy_access"`
+    Name string `json:"name"`
+    OauthConfig *AppOauthConfig `json:"oauth_config,omitempty"`
+    Role AppRole `json:"role"`
+    }
+    if err := json.Unmarshal(data, &r); err != nil {
+        return err
+    }
+    x.AccountMembership = r.AccountMembership
+    x.AcctID = r.AcctID
+    x.AppID = r.AppID
+    x.AppType = r.AppType
+    x.CertNotAfter = r.CertNotAfter
+    x.ClientConfigurations = r.ClientConfigurations
+    x.CreatedAt = r.CreatedAt
+    x.Creator = r.Creator
+    x.DefaultGroup = r.DefaultGroup
+    x.Description = r.Description
+    x.Enabled = r.Enabled
+    x.Groups = r.Groups
+    x.Interface = r.Interface
+    x.IpAddressPolicy = r.IpAddressPolicy
+    x.LastOperations = r.LastOperations
+    x.LastusedAt = r.LastusedAt
+    x.LegacyAccess = r.LegacyAccess
+    x.Name = r.Name
+    x.OauthConfig = r.OauthConfig
+    x.Role = r.Role
+    return nil
 }
 
 type AppAccountMembership struct {
@@ -134,129 +241,134 @@ func (x *AppAccountRoleDescriptor) UnmarshalJSON(data []byte) error {
     return nil
 }
 
-// Authentication method of an app.
-type AppAuthType string
+type AppAuthType struct {
+    // The type of the credential configured on the app
+    AuthType AppAuthTypeVariants `json:"auth_type"`
+    // If `auth_type` is `all`, this field will include the list of individual auth
+    // types for the app
+    AuthTypeAll *[]OneAppAuthType `json:"auth_type_all,omitempty"`
+}
 
-// List of supported AppAuthType values
-const (
-    AppAuthTypeSecret AppAuthType = "Secret"
-    AppAuthTypeCertificate AppAuthType = "Certificate"
-    AppAuthTypeTrustedCa AppAuthType = "TrustedCa"
-    AppAuthTypeGoogleServiceAccount AppAuthType = "GoogleServiceAccount"
-    AppAuthTypeSignedJwt AppAuthType = "SignedJwt"
-    AppAuthTypeLdap AppAuthType = "Ldap"
-    AppAuthTypeAwsIam AppAuthType = "AwsIam"
-    AppAuthTypeAwsXks AppAuthType = "AwsXks"
-    AppAuthTypeGoogleWorkspaceCSE AppAuthType = "GoogleWorkspaceCSE"
-)
-
-// App authentication mechanisms.
-type AppCredential struct {
-    // Authenticating credentials of an App.
-    Secret *ZeroizedString
-    // PKI Certificate based authentication.
-    Certificate *ZeroizedBlob
-    // PKI certificate with Trusted CA based authentication.
-    TrustedCa *TrustedCaCredential
-    // An App's service account for communicating with Google APIs and Cloud. Google OAuth 2.0
-    GoogleServiceAccount *AppCredentialGoogleServiceAccount
-    // Authentication using a signed JWT directly as a bearer token.
-    SignedJwt *AppCredentialSignedJwt
-    // LDAP credentials of an App used for authentication.
-    Ldap *UUID
-    // Sign-in credentials to authenticate with AWS for it's services and resources.
-    AwsIam *struct{}
-    // SigV4 credentials used for AWS XKS APIs
-    AwsXks *AppCredentialAwsXks
-    GoogleWorkspaceCse *struct{}
+type AppAuthTypeVariants struct {
+    // App credential is `all`, with a combination of auth methods specified
+    All *struct{}
+    One *OneAppAuthType
 }
-// An App's service account for communicating with Google APIs and Cloud. Google OAuth 2.0
-type AppCredentialGoogleServiceAccount struct {
-    // Policy specifying acceptable access reasons.
-    AccessReasonPolicy *GoogleAccessReasonPolicy `json:"access_reason_policy,omitempty"`
-    // Mapping for all groups an application is part of and the Gcp specific permissions it has within each of those groups.
-    Groups *map[UUID]GcpAppPermissions `json:"groups,omitempty"`
-}
-// Authentication using a signed JWT directly as a bearer token.
-type AppCredentialSignedJwt struct {
-    ValidIssuers []string `json:"valid_issuers"`
-    SigningKeys SigningKeys `json:"signing_keys"`
-}
-// SigV4 credentials used for AWS XKS APIs
-type AppCredentialAwsXks struct {
-    AccessKeyID *string `json:"access_key_id,omitempty"`
-    SecretKey *ZeroizedString `json:"secret_key,omitempty"`
-}
-func (x AppCredential) MarshalJSON() ([]byte, error) {
+func (x AppAuthTypeVariants) MarshalJSON() ([]byte, error) {
     if err := checkEnumPointers(
-                  "AppCredential", 
-                  []bool{ x.Secret != nil,
-                  x.Certificate != nil,
-                  x.TrustedCa != nil,
-                  x.GoogleServiceAccount != nil,
-                  x.SignedJwt != nil,
-                  x.Ldap != nil,
-                  x.AwsIam != nil,
-                  x.AwsXks != nil,
-                  x.GoogleWorkspaceCse != nil });
+                  "AppAuthTypeVariants", 
+                  []bool{ x.All != nil,
+                  x.One != nil });
                   err != nil {
         return nil, err
     }
-    var obj struct {
-        Secret *ZeroizedString `json:"secret,omitempty"`
-        Certificate *ZeroizedBlob `json:"certificate,omitempty"`
-        TrustedCa *TrustedCaCredential `json:"trustedca,omitempty"`
-        GoogleServiceAccount *AppCredentialGoogleServiceAccount `json:"googleserviceaccount,omitempty"`
-        SignedJwt *AppCredentialSignedJwt `json:"signedjwt,omitempty"`
-        Ldap *UUID `json:"ldap,omitempty"`
-        AwsIam *struct{} `json:"awsiam,omitempty"`
-        AwsXks *AppCredentialAwsXks `json:"awsxks,omitempty"`
-        GoogleWorkspaceCse *struct{} `json:"googleworkspacecse,omitempty"`
+    switch {
+    case x.All != nil:
+        return []byte(`"All"`), nil
     }
-    obj.Secret = x.Secret
-    obj.Certificate = x.Certificate
-    obj.TrustedCa = x.TrustedCa
-    obj.GoogleServiceAccount = x.GoogleServiceAccount
-    obj.SignedJwt = x.SignedJwt
-    obj.Ldap = x.Ldap
-    obj.AwsIam = x.AwsIam
-    obj.AwsXks = x.AwsXks
-    obj.GoogleWorkspaceCse = x.GoogleWorkspaceCse
+    var obj struct {
+        One *OneAppAuthType `json:"One,omitempty"`
+    }
+    obj.One = x.One
     return json.Marshal(obj)
 }
-func (x *AppCredential) UnmarshalJSON(data []byte) error {
-    x.Secret = nil
-    x.Certificate = nil
-    x.TrustedCa = nil
-    x.GoogleServiceAccount = nil
-    x.SignedJwt = nil
-    x.Ldap = nil
-    x.AwsIam = nil
-    x.AwsXks = nil
-    x.GoogleWorkspaceCse = nil
+func (x *AppAuthTypeVariants) UnmarshalJSON(data []byte) error {
+    x.All = nil
+    x.One = nil
+    var str string
+    if err := json.Unmarshal(data, &str); err == nil {
+        switch str {
+        case "All":
+            x.All = &struct{}{}
+        default:
+            return errors.Errorf("invalid value for AppAuthTypeVariants: %v", str)
+        }
+        return nil
+    }
     var obj struct {
-        Secret *ZeroizedString `json:"secret,omitempty"`
-        Certificate *ZeroizedBlob `json:"certificate,omitempty"`
-        TrustedCa *TrustedCaCredential `json:"trustedca,omitempty"`
-        GoogleServiceAccount *AppCredentialGoogleServiceAccount `json:"googleserviceaccount,omitempty"`
-        SignedJwt *AppCredentialSignedJwt `json:"signedjwt,omitempty"`
-        Ldap *UUID `json:"ldap,omitempty"`
-        AwsIam *struct{} `json:"awsiam,omitempty"`
-        AwsXks *AppCredentialAwsXks `json:"awsxks,omitempty"`
-        GoogleWorkspaceCse *struct{} `json:"googleworkspacecse,omitempty"`
+        One *OneAppAuthType `json:"One,omitempty"`
     }
     if err := json.Unmarshal(data, &obj); err != nil {
         return err
     }
-    x.Secret = obj.Secret
-    x.Certificate = obj.Certificate
-    x.TrustedCa = obj.TrustedCa
-    x.GoogleServiceAccount = obj.GoogleServiceAccount
-    x.SignedJwt = obj.SignedJwt
-    x.Ldap = obj.Ldap
-    x.AwsIam = obj.AwsIam
-    x.AwsXks = obj.AwsXks
-    x.GoogleWorkspaceCse = obj.GoogleWorkspaceCse
+    x.One = obj.One
+    return nil
+}
+
+type AppCredential struct {
+    All *[]OneAppCredential
+    One *OneAppCredential
+}
+func (x AppCredential) MarshalJSON() ([]byte, error) {
+    if err := checkEnumPointers(
+                  "AppCredential", 
+                  []bool{ x.All != nil,
+                  x.One != nil });
+                  err != nil {
+        return nil, err
+    }
+    var obj struct {
+        All *[]OneAppCredential `json:"all,omitempty"`
+        One *OneAppCredential `json:"one,omitempty"`
+    }
+    obj.All = x.All
+    obj.One = x.One
+    return json.Marshal(obj)
+}
+func (x *AppCredential) UnmarshalJSON(data []byte) error {
+    x.All = nil
+    x.One = nil
+    var obj struct {
+        All *[]OneAppCredential `json:"all,omitempty"`
+        One *OneAppCredential `json:"one,omitempty"`
+    }
+    if err := json.Unmarshal(data, &obj); err != nil {
+        return err
+    }
+    x.All = obj.All
+    x.One = obj.One
+    return nil
+}
+
+type AppCredentialRequest struct {
+    // Using `all`, clients can specify a combination of two credentials:
+    // - one must be a mutual TLS credential (either `certificate` or `trustedca`),
+    // - the other must be a general app credential (one of `secret`, `awsiam`, `signedjwt`, or `ldap`)
+    //
+    // Apps authenticating with this variant must present both forms of credentials,
+    // i.e., they must present a client certificate during TLS handshake, and also
+    // present the other form of credential in the HTTP request.
+    All *[]OneAppCredentialRequest
+    One *OneAppCredentialRequest
+}
+func (x AppCredentialRequest) MarshalJSON() ([]byte, error) {
+    if err := checkEnumPointers(
+                  "AppCredentialRequest", 
+                  []bool{ x.All != nil,
+                  x.One != nil });
+                  err != nil {
+        return nil, err
+    }
+    var obj struct {
+        All *[]OneAppCredentialRequest `json:"all,omitempty"`
+        One *OneAppCredentialRequest `json:"one,omitempty"`
+    }
+    obj.All = x.All
+    obj.One = x.One
+    return json.Marshal(obj)
+}
+func (x *AppCredentialRequest) UnmarshalJSON(data []byte) error {
+    x.All = nil
+    x.One = nil
+    var obj struct {
+        All *[]OneAppCredentialRequest `json:"all,omitempty"`
+        One *OneAppCredentialRequest `json:"one,omitempty"`
+    }
+    if err := json.Unmarshal(data, &obj); err != nil {
+        return err
+    }
+    x.All = obj.All
+    x.One = obj.One
     return nil
 }
 
@@ -408,7 +520,7 @@ type AppRequest struct {
     // App level client configs override those set at group or account level.
     ClientConfigurations *ClientConfigurationsRequest `json:"client_configurations,omitempty"`
     // Credential for an application which determine the App authentication mechanisms.
-    Credential *AppCredential `json:"credential,omitempty"`
+    Credential *AppCredentialRequest `json:"credential,omitempty"`
     // Migration period for which credentials(and its sessions) remain valid during api key regeneration.
     CredentialMigrationPeriod *uint32 `json:"credential_migration_period,omitempty"`
     // The default group an application belongs to.
@@ -477,8 +589,8 @@ type AppSortByAppName struct {
     Start *string `json:"start,omitempty"`
 }
 func (x AppSort) urlEncode(v map[string][]string) error {
-    if x.ByAppID != nil && x.ByAppName != nil {
-        return errors.New("AppSort can be either ByAppID or ByAppName")
+    if x.ByAppId != nil && x.ByAppName != nil {
+        return errors.New("AppSort can be either ByAppId or ByAppName")
     }
     if x.ByAppID != nil {
         v["sort"] = []string{"app_id" + string(x.ByAppID.Order)}
@@ -493,6 +605,16 @@ func (x AppSort) urlEncode(v map[string][]string) error {
         }
     }
     return nil
+}
+
+type AwsXksCredential struct {
+    AccessKeyID string `json:"access_key_id"`
+    SecretKey ZeroizedString `json:"secret_key"`
+}
+
+type AwsXksCredentialRequest struct {
+    AccessKeyID *string `json:"access_key_id,omitempty"`
+    SecretKey *ZeroizedString `json:"secret_key,omitempty"`
 }
 
 // Request for assigning a group membership to an (AppRole::Admin) app.
@@ -566,6 +688,13 @@ func (x GetAppParams) urlEncode(v map[string][]string) error {
     return nil
 }
 
+type GoogleServiceAccountCredential struct {
+    // Policy specifying acceptable access reasons.
+    AccessReasonPolicy *GoogleAccessReasonPolicy `json:"access_reason_policy,omitempty"`
+    // Mapping for all groups an application is part of and the Gcp specific permissions it has within each of those groups.
+    Groups *map[UUID]GcpAppPermissions `json:"groups,omitempty"`
+}
+
 // Type for updating a group membership
 type GroupMembershipRequest struct {
     // The set of roles to add
@@ -637,7 +766,7 @@ type LastAppOperationTimestamp struct {
 
 // Query params for Get all apps API
 type ListAppsParams struct {
-    // Group for which the associated apps should be retrived.
+    // Group for which the associated apps should be retrieved.
     GroupID *UUID `json:"group_id,omitempty"`
     // Maximum number of apps to return. Default limit is 1001.
     Limit *uint `json:"limit,omitempty"`
@@ -672,7 +801,7 @@ type ListAppsParams struct {
     //   Note: If there is a `limit` specified in the request and DSM returns `limit`-many items in the
     //   response, it will still include a fresh continuation token if there are more items in the collection.
     //   Additionally, unlike other query parameters, `limit` is not required to remain unchanged in a chain of
-    //   requests with `coninutation_token`s.
+    //   requests with `continuation_token`s.
     // - If omitted, the backend returns just a collection of apps with no metadata.
     ContinuationToken *string `json:"continuation_token,omitempty"`
 }
@@ -750,6 +879,315 @@ func (x *ListAppsResponse) UnmarshalJSON(data []byte) error {
     return errors.Errorf("not a valid ListAppsResponse")
 }
 
+// Authentication method of an app.
+type OneAppAuthType string
+
+// List of supported OneAppAuthType values
+const (
+    OneAppAuthTypeSecret OneAppAuthType = "Secret"
+    OneAppAuthTypeGoogleServiceAccount OneAppAuthType = "GoogleServiceAccount"
+    OneAppAuthTypeSignedJwt OneAppAuthType = "SignedJwt"
+    OneAppAuthTypeLdap OneAppAuthType = "Ldap"
+    OneAppAuthTypeAwsIam OneAppAuthType = "AwsIam"
+    OneAppAuthTypeAwsXks OneAppAuthType = "AwsXks"
+    OneAppAuthTypeGoogleWorkspaceCSE OneAppAuthType = "GoogleWorkspaceCSE"
+    OneAppAuthTypeCertificate OneAppAuthType = "Certificate"
+    OneAppAuthTypeTrustedCa OneAppAuthType = "TrustedCa"
+)
+
+// App authentication mechanisms.
+type OneAppCredential struct {
+    // Authenticating credentials of an App.
+    Secret *ZeroizedString
+    // PKI Certificate based authentication.
+    Certificate *ZeroizedBlob
+    // PKI certificate with Trusted CA based authentication.
+    TrustedCa *TrustedCaCredential
+    // An App's service account for communicating with Google APIs and Cloud. Google OAuth 2.0
+    GoogleServiceAccount *GoogleServiceAccountCredential
+    // Authentication using a signed JWT directly as a bearer token.
+    SignedJwt *SignedJwtCredential
+    // LDAP credentials of an App used for authentication.
+    Ldap *UUID
+    // Sign-in credentials to authenticate with AWS for its services and resources.
+    AwsIam *struct{}
+    // SigV4 credentials used for AWS XKS APIs
+    AwsXks *AwsXksCredential
+    GoogleWorkspaceCse *struct{}
+}
+func (x OneAppCredential) MarshalJSON() ([]byte, error) {
+    if err := checkEnumPointers(
+                  "OneAppCredential", 
+                  []bool{ x.Secret != nil,
+                  x.Certificate != nil,
+                  x.TrustedCa != nil,
+                  x.GoogleServiceAccount != nil,
+                  x.SignedJwt != nil,
+                  x.Ldap != nil,
+                  x.AwsIam != nil,
+                  x.AwsXks != nil,
+                  x.GoogleWorkspaceCse != nil });
+                  err != nil {
+        return nil, err
+    }
+    var obj struct {
+        Secret *ZeroizedString `json:"secret,omitempty"`
+        Certificate *ZeroizedBlob `json:"certificate,omitempty"`
+        TrustedCa *TrustedCaCredential `json:"trustedca,omitempty"`
+        GoogleServiceAccount *GoogleServiceAccountCredential `json:"googleserviceaccount,omitempty"`
+        SignedJwt *SignedJwtCredential `json:"signedjwt,omitempty"`
+        Ldap *UUID `json:"ldap,omitempty"`
+        AwsIam *struct{} `json:"awsiam,omitempty"`
+        AwsXks *AwsXksCredential `json:"awsxks,omitempty"`
+        GoogleWorkspaceCse *struct{} `json:"googleworkspacecse,omitempty"`
+    }
+    obj.Secret = x.Secret
+    obj.Certificate = x.Certificate
+    obj.TrustedCa = x.TrustedCa
+    obj.GoogleServiceAccount = x.GoogleServiceAccount
+    obj.SignedJwt = x.SignedJwt
+    obj.Ldap = x.Ldap
+    obj.AwsIam = x.AwsIam
+    obj.AwsXks = x.AwsXks
+    obj.GoogleWorkspaceCse = x.GoogleWorkspaceCse
+    return json.Marshal(obj)
+}
+func (x *OneAppCredential) UnmarshalJSON(data []byte) error {
+    x.Secret = nil
+    x.Certificate = nil
+    x.TrustedCa = nil
+    x.GoogleServiceAccount = nil
+    x.SignedJwt = nil
+    x.Ldap = nil
+    x.AwsIam = nil
+    x.AwsXks = nil
+    x.GoogleWorkspaceCse = nil
+    var obj struct {
+        Secret *ZeroizedString `json:"secret,omitempty"`
+        Certificate *ZeroizedBlob `json:"certificate,omitempty"`
+        TrustedCa *TrustedCaCredential `json:"trustedca,omitempty"`
+        GoogleServiceAccount *GoogleServiceAccountCredential `json:"googleserviceaccount,omitempty"`
+        SignedJwt *SignedJwtCredential `json:"signedjwt,omitempty"`
+        Ldap *UUID `json:"ldap,omitempty"`
+        AwsIam *struct{} `json:"awsiam,omitempty"`
+        AwsXks *AwsXksCredential `json:"awsxks,omitempty"`
+        GoogleWorkspaceCse *struct{} `json:"googleworkspacecse,omitempty"`
+    }
+    if err := json.Unmarshal(data, &obj); err != nil {
+        return err
+    }
+    x.Secret = obj.Secret
+    x.Certificate = obj.Certificate
+    x.TrustedCa = obj.TrustedCa
+    x.GoogleServiceAccount = obj.GoogleServiceAccount
+    x.SignedJwt = obj.SignedJwt
+    x.Ldap = obj.Ldap
+    x.AwsIam = obj.AwsIam
+    x.AwsXks = obj.AwsXks
+    x.GoogleWorkspaceCse = obj.GoogleWorkspaceCse
+    return nil
+}
+
+type OneAppCredentialRequest struct {
+    // Secret/API-key based authentication
+    Secret *SecretCredentialRequest
+    // PKI Certificate based authentication.
+    Certificate *ZeroizedBlob
+    // PKI certificate with Trusted CA based authentication.
+    TrustedCa *TrustedCaCredential
+    // An App's service account for communicating with Google APIs and Cloud. Google OAuth 2.0
+    GoogleServiceAccount *GoogleServiceAccountCredential
+    // Authentication using a signed JWT directly as a bearer token.
+    SignedJwt *SignedJwtCredential
+    // LDAP credentials of an App used for authentication.
+    Ldap *UUID
+    // Sign-in credentials to authenticate with AWS for its services and resources.
+    AwsIam *struct{}
+    // SigV4 credentials used for AWS XKS APIs
+    AwsXks *AwsXksCredentialRequest
+    GoogleWorkspaceCse *struct{}
+}
+func (x OneAppCredentialRequest) MarshalJSON() ([]byte, error) {
+    if err := checkEnumPointers(
+                  "OneAppCredentialRequest", 
+                  []bool{ x.Secret != nil,
+                  x.Certificate != nil,
+                  x.TrustedCa != nil,
+                  x.GoogleServiceAccount != nil,
+                  x.SignedJwt != nil,
+                  x.Ldap != nil,
+                  x.AwsIam != nil,
+                  x.AwsXks != nil,
+                  x.GoogleWorkspaceCse != nil });
+                  err != nil {
+        return nil, err
+    }
+    var obj struct {
+        Secret *SecretCredentialRequest `json:"secret,omitempty"`
+        Certificate *ZeroizedBlob `json:"certificate,omitempty"`
+        TrustedCa *TrustedCaCredential `json:"trustedca,omitempty"`
+        GoogleServiceAccount *GoogleServiceAccountCredential `json:"googleserviceaccount,omitempty"`
+        SignedJwt *SignedJwtCredential `json:"signedjwt,omitempty"`
+        Ldap *UUID `json:"ldap,omitempty"`
+        AwsIam *struct{} `json:"awsiam,omitempty"`
+        AwsXks *AwsXksCredentialRequest `json:"awsxks,omitempty"`
+        GoogleWorkspaceCse *struct{} `json:"googleworkspacecse,omitempty"`
+    }
+    obj.Secret = x.Secret
+    obj.Certificate = x.Certificate
+    obj.TrustedCa = x.TrustedCa
+    obj.GoogleServiceAccount = x.GoogleServiceAccount
+    obj.SignedJwt = x.SignedJwt
+    obj.Ldap = x.Ldap
+    obj.AwsIam = x.AwsIam
+    obj.AwsXks = x.AwsXks
+    obj.GoogleWorkspaceCse = x.GoogleWorkspaceCse
+    return json.Marshal(obj)
+}
+func (x *OneAppCredentialRequest) UnmarshalJSON(data []byte) error {
+    x.Secret = nil
+    x.Certificate = nil
+    x.TrustedCa = nil
+    x.GoogleServiceAccount = nil
+    x.SignedJwt = nil
+    x.Ldap = nil
+    x.AwsIam = nil
+    x.AwsXks = nil
+    x.GoogleWorkspaceCse = nil
+    var obj struct {
+        Secret *SecretCredentialRequest `json:"secret,omitempty"`
+        Certificate *ZeroizedBlob `json:"certificate,omitempty"`
+        TrustedCa *TrustedCaCredential `json:"trustedca,omitempty"`
+        GoogleServiceAccount *GoogleServiceAccountCredential `json:"googleserviceaccount,omitempty"`
+        SignedJwt *SignedJwtCredential `json:"signedjwt,omitempty"`
+        Ldap *UUID `json:"ldap,omitempty"`
+        AwsIam *struct{} `json:"awsiam,omitempty"`
+        AwsXks *AwsXksCredentialRequest `json:"awsxks,omitempty"`
+        GoogleWorkspaceCse *struct{} `json:"googleworkspacecse,omitempty"`
+    }
+    if err := json.Unmarshal(data, &obj); err != nil {
+        return err
+    }
+    x.Secret = obj.Secret
+    x.Certificate = obj.Certificate
+    x.TrustedCa = obj.TrustedCa
+    x.GoogleServiceAccount = obj.GoogleServiceAccount
+    x.SignedJwt = obj.SignedJwt
+    x.Ldap = obj.Ldap
+    x.AwsIam = obj.AwsIam
+    x.AwsXks = obj.AwsXks
+    x.GoogleWorkspaceCse = obj.GoogleWorkspaceCse
+    return nil
+}
+
+type PolicyDefinition struct {
+    // A policy definition defined using the Rego policy language as outlined in
+    // the [Open Policy Agent](https://www.openpolicyagent.org/docs/policy-language) docs.
+    //
+    // The DSM backend will pass an input to the Rego engine and the format is defined as such:
+    // - A JSON object that nests the JWT body one level, where the root key is `jwt_body`.
+    // - From the policy, this object is accessible via the `input` (OPA defined) variable.
+    //
+    // An example of the input object:
+    // ```json
+    // {
+    //     "jwt_body": { < jwt body contents > }
+    // }
+    // ```
+    //
+    // An example policy indexing into the input:
+    //
+    // ```rego
+    // package my_example
+    //
+    // default allow := false
+    //
+    // allow if {
+    //     input.jwt_body.my_private_claims.employee == "Alice"
+    // }
+    // ```
+    //
+    // The expected policy format is defined as such:
+    // - A **required** variable defined as `allow` of type boolean. This should be updated true or false based on any other processing done.
+    // - An **optional** field defined as `additional_logging` if the client wishes to include other information not captured in existing audit logs for JWT auth apps.
+    //     - Note: `additional_logging` is *limited to a max length of 128 UTF-8 bytes* and corresponds to the `client_provided_context` field on the `AuditLog` model.
+    Rego *PolicyDefinitionRego
+}
+// A policy definition defined using the Rego policy language as outlined in
+// the [Open Policy Agent](https://www.openpolicyagent.org/docs/policy-language) docs.
+//
+// The DSM backend will pass an input to the Rego engine and the format is defined as such:
+// - A JSON object that nests the JWT body one level, where the root key is `jwt_body`.
+// - From the policy, this object is accessible via the `input` (OPA defined) variable.
+//
+// An example of the input object:
+// ```json
+// {
+//     "jwt_body": { < jwt body contents > }
+// }
+// ```
+//
+// An example policy indexing into the input:
+//
+// ```rego
+// package my_example
+//
+// default allow := false
+//
+// allow if {
+//     input.jwt_body.my_private_claims.employee == "Alice"
+// }
+// ```
+//
+// The expected policy format is defined as such:
+// - A **required** variable defined as `allow` of type boolean. This should be updated true or false based on any other processing done.
+// - An **optional** field defined as `additional_logging` if the client wishes to include other information not captured in existing audit logs for JWT auth apps.
+//     - Note: `additional_logging` is *limited to a max length of 128 UTF-8 bytes* and corresponds to the `client_provided_context` field on the `AuditLog` model.
+type PolicyDefinitionRego struct {
+    Value string `json:"value"`
+}
+func (x PolicyDefinition) MarshalJSON() ([]byte, error) {
+    if err := checkEnumPointers(
+                  "PolicyDefinition", 
+                  []bool{ x.Rego != nil });
+                  err != nil {
+        return nil, err
+    }
+    m := make(map[string]interface{})
+    switch {
+    case x.Rego != nil:
+        b, err := json.Marshal(x.Rego)
+        if err != nil {
+            return nil, err
+        }
+        if err := json.Unmarshal(b, &m); err != nil {
+            return nil, err
+        }
+        m["$type"] = "rego"
+    }
+    return json.Marshal(m)
+}
+func (x *PolicyDefinition) UnmarshalJSON(data []byte) error {
+    x.Rego = nil
+    var h struct {
+        Tag string `json:"$type"`
+    }
+    if err := json.Unmarshal(data, &h); err != nil {
+        return errors.Errorf("not a valid PolicyDefinition")
+    }
+    switch h.Tag {
+    case "rego":
+        var rego PolicyDefinitionRego
+        if err := json.Unmarshal(data, &rego); err != nil {
+            return err
+        }
+        x.Rego = &rego
+    default:
+         return errors.Errorf("invalid tag value: %v", h.Tag)
+    }
+    return nil
+}
+
 // Expired app-credentials that are still valid for a transitional period.
 type PreviousCredential struct {
     // App authentication mechanisms.
@@ -758,9 +1196,79 @@ type PreviousCredential struct {
     ValidUntil Time `json:"valid_until"`
 }
 
+type PrivateClaimsPolicy struct {
+    // Specifies the policy language and "source".
+    Definition PolicyDefinition `json:"definition"`
+}
+
+type SecretCredentialRequest struct {
+    // Use the existing secret (note that this must match the existing secret configured on the app)
+    Value *ZeroizedString
+    // Generate a new secret
+    Generate *SecretCredentialRequestGenerate
+}
+// Generate a new secret
+type SecretCredentialRequestGenerate struct {
+    // Size of the secret to be generated in bytes
+    Size *uint32 `json:"size,omitempty"`
+}
+func (x SecretCredentialRequest) MarshalJSON() ([]byte, error) {
+    if err := checkEnumPointers(
+                  "SecretCredentialRequest", 
+                  []bool{ x.Value != nil,
+                  x.Generate != nil });
+                  err != nil {
+        return nil, err
+    }
+    if x.Value != nil {
+        return json.Marshal(x.Value)
+    }
+    if x.Generate != nil {
+        return json.Marshal(x.Generate)
+    }
+    panic("unreachable")
+}
+func (x *SecretCredentialRequest) UnmarshalJSON(data []byte) error {
+    x.Value = nil
+    x.Generate = nil
+    var value ZeroizedString
+    if err := json.Unmarshal(data, &value); err == nil {
+        x.Value = &value
+        return nil
+    }
+    var generate SecretCredentialRequestGenerate
+    if err := json.Unmarshal(data, &generate); err == nil {
+        x.Generate = &generate
+        return nil
+    }
+    return errors.Errorf("not a valid SecretCredentialRequest")
+}
+
+type SignedJwtCredential struct {
+    ValidIssuers []string `json:"valid_issuers"`
+    SigningKeys SigningKeys `json:"signing_keys"`
+    // If configured, specifies the policy for what *additional* validations
+    // the backend should perform against (primarily) the "private claims" in a JWT.
+    PrivateClaimsPolicy *PrivateClaimsPolicy `json:"private_claims_policy,omitempty"`
+}
+
+// A GeneralName that can be used as a [subject alternative name][SAN] in
+// a certificate.
+//
+// Today, the directoryName, dNSName, and iPAddress choices are supported.
+// Note that directoryName can also be used to represent the subject field
+// in a certificate.
+//
+// [SAN]: https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.6
 type SubjectGeneral struct {
+    // A directoryName, which consists of a sequence of (type, value)
+    // pairs, where type is an OID, and value is a DER-encoded ASN.1
+    // value. (This represents a sequence of relative distinguished
+    // names.)
     DirectoryName *[][2]string
+    // A DNS name.
     DnsName *string
+    // An IP address.
     IpAddress *IpAddr
 }
 func (x SubjectGeneral) MarshalJSON() ([]byte, error) {
@@ -800,45 +1308,116 @@ func (x *SubjectGeneral) UnmarshalJSON(data []byte) error {
     return nil
 }
 
+// Trust anchors (i.e., root CA certificates) for a [`TrustedCaCredential`].
+type TrustAnchor struct {
+    // A single root CA certificate.
+    CaCertificate *ZeroizedBlob
+    // Multiple root CA certificates. DSM currently supports up to 16 certs.
+    CaCertificates *[]ZeroizedBlob
+}
+func (x TrustAnchor) MarshalJSON() ([]byte, error) {
+    if err := checkEnumPointers(
+                  "TrustAnchor", 
+                  []bool{ x.CaCertificate != nil,
+                  x.CaCertificates != nil });
+                  err != nil {
+        return nil, err
+    }
+    var obj struct {
+        CaCertificate *ZeroizedBlob `json:"ca_certificate,omitempty"`
+        CaCertificates *[]ZeroizedBlob `json:"ca_certificates,omitempty"`
+    }
+    obj.CaCertificate = x.CaCertificate
+    obj.CaCertificates = x.CaCertificates
+    return json.Marshal(obj)
+}
+func (x *TrustAnchor) UnmarshalJSON(data []byte) error {
+    x.CaCertificate = nil
+    x.CaCertificates = nil
+    var obj struct {
+        CaCertificate *ZeroizedBlob `json:"ca_certificate,omitempty"`
+        CaCertificates *[]ZeroizedBlob `json:"ca_certificates,omitempty"`
+    }
+    if err := json.Unmarshal(data, &obj); err != nil {
+        return err
+    }
+    x.CaCertificate = obj.CaCertificate
+    x.CaCertificates = obj.CaCertificates
+    return nil
+}
+
+// Subjects or subject alternative names (SANs) for trusted CA auth.
+// DSM will check the subject field and any SANs inside incoming
+// client certificates and compare them against the subjects configured
+// in the trusted CA auth config.
 type TrustAnchorSubject struct {
+    // A single subject as a list of OID/value string pairs
+    // (representing a sequence of relative distinguished names), which
+    // should appear in the client cert's subject field and/or as one
+    // of its SANs.
+    //
+    // This legacy variant is retained for backcompat purposes, and is
+    // equivalent to specifying a directoryName via the SubjectGeneral
+    // variant.
     Subject *[][2]string
+    // A GeneralName, which should appear in the client cert's subject
+    // field and/or as one of its SANs.
     SubjectGeneral *SubjectGeneral
+    // List of allowed GeneralName subjects. At least one of the values
+    // in this list must appear in the client cert, under its subject
+    // field and/or as one of its SANs.
+    //
+    // Currently, DSM supports at most 16 subjects.
+    Subjects *[]SubjectGeneral
 }
 func (x TrustAnchorSubject) MarshalJSON() ([]byte, error) {
     if err := checkEnumPointers(
                   "TrustAnchorSubject", 
                   []bool{ x.Subject != nil,
-                  x.SubjectGeneral != nil });
+                  x.SubjectGeneral != nil,
+                  x.Subjects != nil });
                   err != nil {
         return nil, err
     }
     var obj struct {
         Subject *[][2]string `json:"subject,omitempty"`
         SubjectGeneral *SubjectGeneral `json:"subject_general,omitempty"`
+        Subjects *[]SubjectGeneral `json:"subjects,omitempty"`
     }
     obj.Subject = x.Subject
     obj.SubjectGeneral = x.SubjectGeneral
+    obj.Subjects = x.Subjects
     return json.Marshal(obj)
 }
 func (x *TrustAnchorSubject) UnmarshalJSON(data []byte) error {
     x.Subject = nil
     x.SubjectGeneral = nil
+    x.Subjects = nil
     var obj struct {
         Subject *[][2]string `json:"subject,omitempty"`
         SubjectGeneral *SubjectGeneral `json:"subject_general,omitempty"`
+        Subjects *[]SubjectGeneral `json:"subjects,omitempty"`
     }
     if err := json.Unmarshal(data, &obj); err != nil {
         return err
     }
     x.Subject = obj.Subject
     x.SubjectGeneral = obj.SubjectGeneral
+    x.Subjects = obj.Subjects
     return nil
 }
 
-// `TrustedCa` app auth
+// `TrustedCa` app auth configuration.
 type TrustedCaCredential struct {
+    // The subject or subject alterative names (SANs) expected in the
+    // client certificate. During authentication, DSM will check that
+    // the client certificate presented contains at least one of the
+    // subjects configured here.
     Subject TrustAnchorSubject `json:"subject"`
-    CaCertificate ZeroizedBlob `json:"ca_certificate"`
+    // Trust anchors (root CA certificates) used for chain validation.
+    // The client certificate chain presented during authentication
+    // must validate successfully against one of the root CAs.
+    TrustAnchors TrustAnchor `json:"trust_anchors"`
     // When `true`, revocation status of certificates is checked, and revoked
     // certificates are rejected
     CheckRevocation *bool `json:"check_revocation,omitempty"`
@@ -858,7 +1437,19 @@ func (x TrustedCaCredential) MarshalJSON() ([]byte, error) {
             m[k] = v
         }
     }
-    m["ca_certificate"] = x.CaCertificate
+    { // x.TrustAnchors is flattened
+        b, err := json.Marshal(&x.TrustAnchors)
+        if err != nil {
+            return nil, err
+        }
+        f := make(map[string]interface{})
+        if err := json.Unmarshal(b, &f); err != nil {
+            return nil, err
+        }
+        for k, v := range f {
+            m[k] = v
+        }
+    }
     if x.CheckRevocation != nil {
         m["check_revocation"] = x.CheckRevocation
     }
@@ -868,14 +1459,15 @@ func (x *TrustedCaCredential) UnmarshalJSON(data []byte) error {
     if err := json.Unmarshal(data, &x.Subject); err != nil {
         return err
     }
+    if err := json.Unmarshal(data, &x.TrustAnchors); err != nil {
+        return err
+    }
     var r struct {
-    CaCertificate ZeroizedBlob `json:"ca_certificate"`
     CheckRevocation *bool `json:"check_revocation,omitempty"`
     }
     if err := json.Unmarshal(data, &r); err != nil {
         return err
     }
-    x.CaCertificate = r.CaCertificate
     x.CheckRevocation = r.CheckRevocation
     return nil
 }

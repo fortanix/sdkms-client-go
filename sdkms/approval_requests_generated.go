@@ -11,6 +11,7 @@ import (
     "encoding/json"
     "fmt"
     "net/http"
+    "net/url"
     "strings"
     "github.com/pkg/errors"
 )
@@ -61,6 +62,7 @@ type ApprovalSubject struct {
     Account *UUID
     NewAccount *struct{}
     Role *UUID
+    ClusterConfig *struct{}
 }
 func (x ApprovalSubject) MarshalJSON() ([]byte, error) {
     if err := checkEnumPointers(
@@ -71,13 +73,16 @@ func (x ApprovalSubject) MarshalJSON() ([]byte, error) {
                   x.Plugin != nil,
                   x.Account != nil,
                   x.NewAccount != nil,
-                  x.Role != nil });
+                  x.Role != nil,
+                  x.ClusterConfig != nil });
                   err != nil {
         return nil, err
     }
     switch {
     case x.NewAccount != nil:
         return []byte(`"newaccount"`), nil
+    case x.ClusterConfig != nil:
+        return []byte(`"clusterconfig"`), nil
     }
     var obj struct {
         Group *UUID `json:"group,omitempty"`
@@ -103,11 +108,14 @@ func (x *ApprovalSubject) UnmarshalJSON(data []byte) error {
     x.Account = nil
     x.NewAccount = nil
     x.Role = nil
+    x.ClusterConfig = nil
     var str string
     if err := json.Unmarshal(data, &str); err == nil {
         switch str {
         case "newaccount":
             x.NewAccount = &struct{}{}
+        case "clusterconfig":
+            x.ClusterConfig = &struct{}{}
         default:
             return errors.Errorf("invalid value for ApprovalSubject: %v", str)
         }

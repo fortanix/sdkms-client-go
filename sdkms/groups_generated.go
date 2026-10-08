@@ -11,48 +11,28 @@ import (
     "encoding/json"
     "fmt"
     "net/http"
+    "net/url"
     "strings"
     "github.com/pkg/errors"
 )
 
-// AWS KMS resources are hosted in multiple locations world-wide and
-// each AWS Region is a separate geographic area
-// https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html
-type AwskmsRegion string
+type AwsKmsKeyMaterialMapping string
 
-// List of supported AwskmsRegion values
+// List of supported AwsKmsKeyMaterialMapping values
 const (
-    AwskmsRegionUsEast1 AwskmsRegion = "us-east-1"
-    AwskmsRegionUsEast2 AwskmsRegion = "us-east-2"
-    AwskmsRegionUsWest1 AwskmsRegion = "us-west-1"
-    AwskmsRegionUsWest2 AwskmsRegion = "us-west-2"
-    AwskmsRegionAfSouth1 AwskmsRegion = "af-south-1"
-    AwskmsRegionApEast1 AwskmsRegion = "ap-east-1"
-    AwskmsRegionApSoutheast3 AwskmsRegion = "ap-southeast-3"
-    AwskmsRegionApSoutheast4 AwskmsRegion = "ap-southeast-4"
-    AwskmsRegionApSouth1 AwskmsRegion = "ap-south-1"
-    AwskmsRegionApSouth2 AwskmsRegion = "ap-south-2"
-    AwskmsRegionApNortheast3 AwskmsRegion = "ap-northeast-3"
-    AwskmsRegionApNortheast2 AwskmsRegion = "ap-northeast-2"
-    AwskmsRegionApSoutheast1 AwskmsRegion = "ap-southeast-1"
-    AwskmsRegionApSoutheast2 AwskmsRegion = "ap-southeast-2"
-    AwskmsRegionApNortheast1 AwskmsRegion = "ap-northeast-1"
-    AwskmsRegionCaCentral1 AwskmsRegion = "ca-central-1"
-    AwskmsRegionCaWest1 AwskmsRegion = "ca-west-1"
-    AwskmsRegionEuCentral1 AwskmsRegion = "eu-central-1"
-    AwskmsRegionEuCentral2 AwskmsRegion = "eu-central-2"
-    AwskmsRegionEuWest1 AwskmsRegion = "eu-west-1"
-    AwskmsRegionEuWest2 AwskmsRegion = "eu-west-2"
-    AwskmsRegionEuSouth1 AwskmsRegion = "eu-south-1"
-    AwskmsRegionEuSouth2 AwskmsRegion = "eu-south-2"
-    AwskmsRegionEuWest3 AwskmsRegion = "eu-west-3"
-    AwskmsRegionEuNorth1 AwskmsRegion = "eu-north-1"
-    AwskmsRegionMeSouth1 AwskmsRegion = "me-south-1"
-    AwskmsRegionMeCentral1 AwskmsRegion = "me-central-1"
-    AwskmsRegionSaEast1 AwskmsRegion = "sa-east-1"
-    AwskmsRegionUsGovEast1 AwskmsRegion = "us-gov-east-1"
-    AwskmsRegionUsGovWest1 AwskmsRegion = "us-gov-west-1"
-    AwskmsRegionIlCentral1 AwskmsRegion = "il-central-1"
+    // Each virtual sobject in the external group represents an AWS key container.
+    //
+    // This also means that DSM does ["manual rotation"] of keys in the AWS group
+    //
+    // ["manual rotation"]: https://docs.aws.amazon.com/kms/latest/developerguide/rotate-keys-manually.html
+    AwsKmsKeyMaterialMappingAwsKeyContainerMapsToSobject AwsKmsKeyMaterialMapping = "aws_key_container_maps_to_sobject"
+    // Each virtual sobject in the AWS group represents an AWS key material.
+    //
+    // This is relevant for AWS keys that support AWS-native rotation (symmetric keys at the moment).
+    //
+    // Note that this also means that DSM does AWS-native rotation of key in the AWS group, *and* that
+    // AWS keys that do not support AWS-native rotation cannot be rotated.
+    AwsKmsKeyMaterialMappingAwsKeyMaterialMapsToSobject AwsKmsKeyMaterialMapping = "aws_key_material_maps_to_sobject"
 )
 
 // Specifies the AWS service. Only `kms` is supported for now.
@@ -234,6 +214,18 @@ type Group struct {
     HmgRedundancy *HmgRedundancyScheme `json:"hmg_redundancy,omitempty"`
     HmgSegregation *bool `json:"hmg_segregation,omitempty"`
     HmgSync *bool `json:"hmg_sync,omitempty"`
+    // Group-level key history policy (aka key undo policy).
+    // 
+    // Key history policies allow certain key management operations, normally irreversible,
+    // to be undoable within a configurable period of time. Such policies can be specified
+    // on DSM-local (i.e., not externally-backed) groups, as well as on FIPS replication
+    // groups.
+    // 
+    // To remove an existing policy when updating a group, specify the string "remove" in
+    // the PATCH request.
+    // 
+    // For more information about this feature, please see
+    // <https://support.fortanix.com/docs/users-guide-key-undo-policy>.
     KeyHistoryPolicy *KeyHistoryPolicy `json:"key_history_policy,omitempty"`
     KeyMetadataPolicy *KeyMetadataPolicy `json:"key_metadata_policy,omitempty"`
     Name string `json:"name"`
@@ -321,6 +313,18 @@ type GroupRequest struct {
     HmgRedundancy *Removable[HmgRedundancyScheme] `json:"hmg_redundancy,omitempty"`
     HmgSegregation *bool `json:"hmg_segregation,omitempty"`
     HmgSync *bool `json:"hmg_sync,omitempty"`
+    // Group-level key history policy (aka key undo policy).
+    // 
+    // Key history policies allow certain key management operations, normally irreversible,
+    // to be undoable within a configurable period of time. Such policies can be specified
+    // on DSM-local (i.e., not externally-backed) groups, as well as on FIPS replication
+    // groups.
+    // 
+    // To remove an existing policy when updating a group, specify the string "remove" in
+    // the PATCH request.
+    // 
+    // For more information about this feature, please see
+    // <https://support.fortanix.com/docs/users-guide-key-undo-policy>.
     KeyHistoryPolicy *Removable[KeyHistoryPolicy] `json:"key_history_policy,omitempty"`
     KeyMetadataPolicy *Removable[KeyMetadataPolicy] `json:"key_metadata_policy,omitempty"`
     ModHmg *map[UUID]HmgConfig `json:"mod_hmg,omitempty"`
@@ -337,6 +341,7 @@ type HmgConfig struct {
     Fortanix *HmgConfigFortanix
     FortanixFipsCluster *HmgConfigFortanixFipsCluster
     AzureKeyVault *HmgConfigAzureKeyVault
+    OciVault *HmgConfigOciVault
     GcpKeyRing *GcpKeyRingConfig
 }
 type HmgConfigNcipher struct {
@@ -377,9 +382,14 @@ type HmgConfigAwsKms struct {
     TLS TlsConfig `json:"tls"`
     AccessKey *string `json:"access_key,omitempty"`
     SecretKey *ZeroizedString `json:"secret_key,omitempty"`
-    Region *AwskmsRegion `json:"region,omitempty"`
+    Region *string `json:"region,omitempty"`
     Service *AwskmsService `json:"service,omitempty"`
     AccountID *string `json:"account_id,omitempty"`
+    // How AWS keys with multiple key materials are mapped to virtual Sobjects in DSM.
+    //
+    // Note that this can only be specified when creating the AWS-backed group,
+    // and cannot be updated after creation
+    KeyMaterialMapping *AwsKmsKeyMaterialMapping `json:"key_material_mapping,omitempty"`
 }
 type HmgConfigFortanix struct {
     URL string `json:"url"`
@@ -418,6 +428,13 @@ type HmgConfigAzureKeyVault struct {
     // update, endpoints for (ordinary) Azure global cloud will be used.
     Endpoints *AzureServiceEndpoints `json:"endpoints,omitempty"`
 }
+type HmgConfigOciVault struct {
+    Region string `json:"region"`
+    Realm *OciRealm `json:"realm,omitempty"`
+    CompartmentOcid string `json:"compartment_ocid"`
+    CredentialID CredentialId `json:"credential_id"`
+    VaultID *string `json:"vault_id,omitempty"`
+}
 func (x HmgConfig) MarshalJSON() ([]byte, error) {
     if err := checkEnumPointers(
                   "HmgConfig", 
@@ -428,6 +445,7 @@ func (x HmgConfig) MarshalJSON() ([]byte, error) {
                   x.Fortanix != nil,
                   x.FortanixFipsCluster != nil,
                   x.AzureKeyVault != nil,
+                  x.OciVault != nil,
                   x.GcpKeyRing != nil });
                   err != nil {
         return nil, err
@@ -497,6 +515,15 @@ func (x HmgConfig) MarshalJSON() ([]byte, error) {
             return nil, err
         }
         m["kind"] = "AzureKeyVault"
+    case x.OciVault != nil:
+        b, err := json.Marshal(x.OciVault)
+        if err != nil {
+            return nil, err
+        }
+        if err := json.Unmarshal(b, &m); err != nil {
+            return nil, err
+        }
+        m["kind"] = "OciVault"
     case x.GcpKeyRing != nil:
         b, err := json.Marshal(x.GcpKeyRing)
         if err != nil {
@@ -517,6 +544,7 @@ func (x *HmgConfig) UnmarshalJSON(data []byte) error {
     x.Fortanix = nil
     x.FortanixFipsCluster = nil
     x.AzureKeyVault = nil
+    x.OciVault = nil
     x.GcpKeyRing = nil
     var h struct {
         Tag string `json:"kind"`
@@ -567,12 +595,115 @@ func (x *HmgConfig) UnmarshalJSON(data []byte) error {
             return err
         }
         x.AzureKeyVault = &azureKeyVault
+    case "OciVault":
+        var ociVault HmgConfigOciVault
+        if err := json.Unmarshal(data, &ociVault); err != nil {
+            return err
+        }
+        x.OciVault = &ociVault
     case "GcpKeyRing":
         var gcpKeyRing GcpKeyRingConfig
         if err := json.Unmarshal(data, &gcpKeyRing); err != nil {
             return err
         }
         x.GcpKeyRing = &gcpKeyRing
+    default:
+         return errors.Errorf("invalid tag value: %v", h.Tag)
+    }
+    return nil
+}
+
+type HmgListKeyCollectionsRequest struct {
+    // Credentials and parameters for fetching all OCI vaults available to the
+    // OCI user associated with the supplied RSA key.
+    OciVault *ListOciVaultsRequest
+}
+func (x HmgListKeyCollectionsRequest) MarshalJSON() ([]byte, error) {
+    if err := checkEnumPointers(
+                  "HmgListKeyCollectionsRequest", 
+                  []bool{ x.OciVault != nil });
+                  err != nil {
+        return nil, err
+    }
+    m := make(map[string]interface{})
+    switch {
+    case x.OciVault != nil:
+        b, err := json.Marshal(x.OciVault)
+        if err != nil {
+            return nil, err
+        }
+        if err := json.Unmarshal(b, &m); err != nil {
+            return nil, err
+        }
+        m["$type"] = "OciVault"
+    }
+    return json.Marshal(m)
+}
+func (x *HmgListKeyCollectionsRequest) UnmarshalJSON(data []byte) error {
+    x.OciVault = nil
+    var h struct {
+        Tag string `json:"$type"`
+    }
+    if err := json.Unmarshal(data, &h); err != nil {
+        return errors.Errorf("not a valid HmgListKeyCollectionsRequest")
+    }
+    switch h.Tag {
+    case "OciVault":
+        var ociVault ListOciVaultsRequest
+        if err := json.Unmarshal(data, &ociVault); err != nil {
+            return err
+        }
+        x.OciVault = &ociVault
+    default:
+         return errors.Errorf("invalid tag value: %v", h.Tag)
+    }
+    return nil
+}
+
+type HmgListKeyCollectionsResponse struct {
+    // A list of all the vaults accessible to the user configured
+    OciKeyVault *HmgListKeyCollectionsResponseOciKeyVault
+}
+// A list of all the vaults accessible to the user configured
+type HmgListKeyCollectionsResponseOciKeyVault struct {
+    Items []OciKeyVault `json:"items"`
+}
+func (x HmgListKeyCollectionsResponse) MarshalJSON() ([]byte, error) {
+    if err := checkEnumPointers(
+                  "HmgListKeyCollectionsResponse", 
+                  []bool{ x.OciKeyVault != nil });
+                  err != nil {
+        return nil, err
+    }
+    m := make(map[string]interface{})
+    switch {
+    case x.OciKeyVault != nil:
+        b, err := json.Marshal(x.OciKeyVault)
+        if err != nil {
+            return nil, err
+        }
+        if err := json.Unmarshal(b, &m); err != nil {
+            return nil, err
+        }
+        m["$type"] = "OciKeyVault"
+    }
+    return json.Marshal(m)
+}
+func (x *HmgListKeyCollectionsResponse) UnmarshalJSON(data []byte) error {
+    x.OciKeyVault = nil
+    var h struct {
+        Tag string `json:"$type"`
+    }
+    if err := json.Unmarshal(data, &h); err != nil {
+        return errors.Errorf("not a valid HmgListKeyCollectionsResponse")
+    }
+    switch h.Tag {
+    case "OciKeyVault":
+        var ociKeyVault HmgListKeyCollectionsResponseOciKeyVault
+        if err := json.Unmarshal(data, &ociKeyVault); err != nil {
+            return err
+        }
+        x.OciKeyVault = &ociKeyVault
     default:
          return errors.Errorf("invalid tag value: %v", h.Tag)
     }
@@ -647,6 +778,82 @@ func (x *ListGroupsResponse) UnmarshalJSON(data []byte) error {
         return nil
     }
     return errors.Errorf("not a valid ListGroupsResponse")
+}
+
+type ListOciVaultsRequest struct {
+    Region string `json:"region"`
+    Realm *OciRealm `json:"realm,omitempty"`
+    CompartmentOcid string `json:"compartment_ocid"`
+    CredentialID CredentialId `json:"credential_id"`
+}
+
+type OciKeyVault struct {
+    VaultName string `json:"vault_name"`
+    VaultType string `json:"vault_type"`
+    VaultID string `json:"vault_id"`
+}
+
+// Oci Realms falls into three broad categories:
+// [Commercial (OCI Public Cloud)](https://docs.oracle.com/en-us/iaas/Content/General/Concepts/regions.htm)
+// [Government (OCI Gov Cloud)](https://docs.oracle.com/en-us/iaas/Content/gov-cloud/govlanding.htm)
+// [Dedicated (OCI DRCC)](https://docs.oracle.com/en-us/iaas/Content/General/Concepts/dedicatedregions.htm)
+//
+// For our purposes, we have defined it as either Commercial (which is the default)
+// or UserDefined, requiring input and primarily used in the Soverign Cloud context (Government/Dedicated).
+type OciRealm struct {
+    Commercial *struct{}
+    UserDefined *OciRealmUserDefined
+}
+type OciRealmUserDefined struct {
+    RealmKey string `json:"realm_key"`
+    Domain string `json:"domain"`
+}
+func (x OciRealm) MarshalJSON() ([]byte, error) {
+    if err := checkEnumPointers(
+                  "OciRealm", 
+                  []bool{ x.Commercial != nil,
+                  x.UserDefined != nil });
+                  err != nil {
+        return nil, err
+    }
+    m := make(map[string]interface{})
+    switch {
+    case x.Commercial != nil:
+        m["$type"] = "commercial"
+    case x.UserDefined != nil:
+        b, err := json.Marshal(x.UserDefined)
+        if err != nil {
+            return nil, err
+        }
+        if err := json.Unmarshal(b, &m); err != nil {
+            return nil, err
+        }
+        m["$type"] = "user_defined"
+    }
+    return json.Marshal(m)
+}
+func (x *OciRealm) UnmarshalJSON(data []byte) error {
+    x.Commercial = nil
+    x.UserDefined = nil
+    var h struct {
+        Tag string `json:"$type"`
+    }
+    if err := json.Unmarshal(data, &h); err != nil {
+        return errors.Errorf("not a valid OciRealm")
+    }
+    switch h.Tag {
+    case "commercial":
+        x.Commercial = &struct{}{}
+    case "user_defined":
+        var userDefined OciRealmUserDefined
+        if err := json.Unmarshal(data, &userDefined); err != nil {
+            return err
+        }
+        x.UserDefined = &userDefined
+    default:
+         return errors.Errorf("invalid tag value: %v", h.Tag)
+    }
+    return nil
 }
 
 // Subset of GroupPermissions to represent GroupPermissions flags in use
@@ -1030,12 +1237,24 @@ func (c *Client) ListGroups(ctx context.Context, queryParameters *GetGroupsParam
     return &r, nil
 }
 
+// Using the chosen credential, list the key collections available.
+func (c *Client) ListKeyCollections(ctx context.Context, body HmgListKeyCollectionsRequest) (*HmgListKeyCollectionsResponse, error) {
+    u := "/sys/v1/groups/hmg/scan_collections"
+    var r HmgListKeyCollectionsResponse
+    if err := c.fetch(ctx, http.MethodPost, u, &body, &r); err != nil {
+        return nil, err
+    }
+    return &r, nil
+}
+
 // Scan external objects.
 //
 // Scan external objects synchronously and create corresponding
 // virtual sobjects in the group as needed. If there is already a
 // virtual sobject corresponding to a scanned object, no sobject
-// is created.
+// is created (but the existing virtual sobject may be updated).
+//
+// Returns a list of all the newly-created sobjects.
 func (c *Client) ScanHmg(ctx context.Context, group_id string, body ScanHmgRequest) ([]Sobject, error) {
     u := "/sys/v1/groups/:group_id/hmg/scan"
     u = strings.NewReplacer(":group_id", group_id).Replace(u)

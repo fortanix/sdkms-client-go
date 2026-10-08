@@ -11,9 +11,20 @@ import (
     "encoding/json"
     "fmt"
     "net/http"
+    "net/url"
     "strings"
     "github.com/pkg/errors"
 )
+
+// Information about the service version.
+type ExternalEntropyInfo struct {
+    ExternalEntropySources []ExternalEntropySourceInfo `json:"external_entropy_sources"`
+}
+
+type ExternalEntropySourceInfo struct {
+    Name string `json:"name"`
+    Description *string `json:"description,omitempty"`
+}
 
 type GetAllServicesResponse struct {
     Items []Service `json:"items"`
@@ -181,6 +192,86 @@ type Service struct {
     Hostnames map[string]HostnameInfo `json:"hostnames"`
 }
 
+type SystemInfoParams struct {
+    // Include FIPS-relevant info in the response. Currently that is `plugins_digest`.
+    //
+    // Only applicable to FIPS builds.
+    DetailedFipsInfo *bool `json:"detailed_fips_info,omitempty"`
+}
+func (x SystemInfoParams) urlEncode(v map[string][]string) error {
+    if x.DetailedFipsInfo != nil {
+        v["detailed_fips_info"] = []string{fmt.Sprintf("%v", *x.DetailedFipsInfo)}
+    }
+    return nil
+}
+
+// Information about the service version.
+type SystemInfoResponse struct {
+    VersionResponse VersionResponse `json:"version_response"`
+    // This is returned if the system has any additional external entropy
+    // sources configured.
+    ExternalEntropy *ExternalEntropyInfo `json:"external_entropy,omitempty"`
+}
+func (x SystemInfoResponse) MarshalJSON() ([]byte, error) {
+    m := make(map[string]interface{})
+    { // x.VersionResponse is flattened
+        b, err := json.Marshal(&x.VersionResponse)
+        if err != nil {
+            return nil, err
+        }
+        f := make(map[string]interface{})
+        if err := json.Unmarshal(b, &f); err != nil {
+            return nil, err
+        }
+        for k, v := range f {
+            m[k] = v
+        }
+    }
+    if x.ExternalEntropy != nil {
+        m["external_entropy"] = x.ExternalEntropy
+    }
+    return json.Marshal(&m)
+}
+func (x *SystemInfoResponse) UnmarshalJSON(data []byte) error {
+    if err := json.Unmarshal(data, &x.VersionResponse); err != nil {
+        return err
+    }
+    var r struct {
+    ExternalEntropy *ExternalEntropyInfo `json:"external_entropy,omitempty"`
+    }
+    if err := json.Unmarshal(data, &r); err != nil {
+        return err
+    }
+    x.ExternalEntropy = r.ExternalEntropy
+    return nil
+}
+
+type TlsCertificateSpki struct {
+    // The TbsCertificate's spki value.
+    CertSpki ZeroizedBlob `json:"cert_spki"`
+    // True if the certificate is currently active.
+    IsActive bool `json:"is_active"`
+}
+
+type TlsCertsSpkiResponse struct {
+    // A list of leaf server certificates used for
+    // TLS connections by DSM.
+    TLSCertificatesInfo []TlsCertificateSpki `json:"tls_certificates_info"`
+}
+
+type TlsPublicKeyInfo struct {
+    // The TbsCertificate's spki value.
+    Spki Blob `json:"spki"`
+    // True if the certificate is currently active.
+    IsActive bool `json:"is_active"`
+}
+
+type TlsPublicKeysResponse struct {
+    // A list of SPKIs(public keys) from leaf server certificates used for
+    // TLS connections by DSM.
+    TLSPublicKeys []TlsPublicKeyInfo `json:"tls_public_keys"`
+}
+
 // Check information about all connected services
 //
 // Returns the information regarding the status of all the connected services.
@@ -202,7 +293,7 @@ func (c *Client) GetHealth(ctx context.Context, queryParameters *HealthParams) e
     if queryParameters != nil {
         q, err := encodeURLParams(queryParameters)
         if err != nil {
-            return err
+            return nil, err
         }
         u = fmt.Sprintf("%v?%v", u, q)
     }
@@ -250,6 +341,23 @@ func (c *Client) SamlSpMetadata(ctx context.Context) ([]uint8, error) {
     return r, nil
 }
 
+// Returns info about the system.
+func (c *Client) SystemInfo(ctx context.Context, queryParameters *SystemInfoParams) (*SystemInfoResponse, error) {
+    u := "/sys/v1/info"
+    if queryParameters != nil {
+        q, err := encodeURLParams(queryParameters)
+        if err != nil {
+            return nil, err
+        }
+        u = fmt.Sprintf("%v?%v", u, q)
+    }
+    var r SystemInfoResponse
+    if err := c.fetch(ctx, http.MethodGet, u, nil, &r); err != nil {
+        return nil, err
+    }
+    return &r, nil
+}
+
 // Test connection using the ldap SSO configuration saved in the account.
 func (c *Client) TestLdapConfig(ctx context.Context, body LdapTestRequest) error {
     u := "/sys/v1/ldap/test"
@@ -257,5 +365,26 @@ func (c *Client) TestLdapConfig(ctx context.Context, body LdapTestRequest) error
         return err
     }
     return nil
+}
+
+// Returns all TLS Certs SPKIs of the DSM endpoints
+// Deprecated(legacy), please use API "/sys/v1/tls_public_keys" instead
+func (c *Client) TlsCertsSpki(ctx context.Context) (*TlsCertsSpkiResponse, error) {
+    u := "/sys/v1/tls_certificates"
+    var r TlsCertsSpkiResponse
+    if err := c.fetch(ctx, http.MethodGet, u, nil, &r); err != nil {
+        return nil, err
+    }
+    return &r, nil
+}
+
+// Returns all TLS Certs SPKIs of the DSM endpoints
+func (c *Client) TlsPublicKeys(ctx context.Context) (*TlsPublicKeysResponse, error) {
+    u := "/sys/v1/tls_public_keys"
+    var r TlsPublicKeysResponse
+    if err := c.fetch(ctx, http.MethodGet, u, nil, &r); err != nil {
+        return nil, err
+    }
+    return &r, nil
 }
 
