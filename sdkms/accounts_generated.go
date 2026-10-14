@@ -1113,7 +1113,7 @@ type GetUsageResponse struct {
     // To illustrate, here are a few examples:
     // - If you have a key which was copied to another group and then do a key rotation (with the key-links also being updated), the `num_operations` count will increase by two.
     // - If you have a key and do an encrypt operation this will increase the `num_operations` and `encryption_operations` each by one.
-    // - If you delete a key, this will increase the only `num_operations` by one.
+    // - If you delete a key, this will increase only `num_operations` by one.
     NumOperations uint64 `json:"num_operations"`
     EncryptionOperations *uint64 `json:"encryption_operations,omitempty"`
     DecryptionOperations *uint64 `json:"decryption_operations,omitempty"`
