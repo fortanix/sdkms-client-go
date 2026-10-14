@@ -35,7 +35,7 @@ func main() {
 	}
 
 	userID := auth.EntityID
-	user, err := client.GetUser(ctx, userID)
+	user, err := client.GetUser(ctx, userID, nil)
 	if err != nil {
 		log.Fatalf("Could not get user object: %v", err)
 	}

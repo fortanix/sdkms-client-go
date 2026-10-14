@@ -170,7 +170,8 @@ func (x *AuthMethod) UnmarshalJSON(data []byte) error {
 
 type AuthRequest struct {
     TokenType *TokenType `json:"token_type,omitempty"`
-    Method AuthRequestMethod `json:"method"`
+    Method *AuthRequestMethod `json:"method,omitempty"`
+    BindTo *BindToPrincipal `json:"bind_to,omitempty"`
 }
 func (x AuthRequest) MarshalJSON() ([]byte, error) {
     m := make(map[string]interface{})
@@ -190,6 +191,9 @@ func (x AuthRequest) MarshalJSON() ([]byte, error) {
     if x.TokenType != nil {
         m["token_type"] = x.TokenType
     }
+    if x.BindTo != nil {
+        m["bind_to"] = x.BindTo
+    }
     return json.Marshal(&m)
 }
 func (x *AuthRequest) UnmarshalJSON(data []byte) error {
@@ -198,11 +202,13 @@ func (x *AuthRequest) UnmarshalJSON(data []byte) error {
     }
     var r struct {
     TokenType *TokenType `json:"token_type,omitempty"`
+    BindTo *BindToPrincipal `json:"bind_to,omitempty"`
     }
     if err := json.Unmarshal(data, &r); err != nil {
         return err
     }
     x.TokenType = r.TokenType
+    x.BindTo = r.BindTo
     return nil
 }
 
@@ -401,6 +407,50 @@ type AwsTemporaryCredentials struct {
     SessionToken ZeroizedString `json:"session_token"`
 }
 
+// A security principal that a session can be bound to.
+//
+// Eg: When app-1 creates a session that can be validated against app-2's credentials,
+// app-1 specifies app-2's ID in an Auth request body like below:
+//
+// ```json
+// {
+//     "token_type":"Bearer",
+//     "bind_to" : {
+//         "app":"<app-2's ID>"
+//     }
+// }
+// ```
+//
+// This is particularly useful when the session token generated using certificate auth of
+// one app needs to be used by another app.
+type BindToPrincipal struct {
+    App *UUID
+}
+func (x BindToPrincipal) MarshalJSON() ([]byte, error) {
+    if err := checkEnumPointers(
+                  "BindToPrincipal", 
+                  []bool{ x.App != nil });
+                  err != nil {
+        return nil, err
+    }
+    var obj struct {
+        App *UUID `json:"app,omitempty"`
+    }
+    obj.App = x.App
+    return json.Marshal(obj)
+}
+func (x *BindToPrincipal) UnmarshalJSON(data []byte) error {
+    x.App = nil
+    var obj struct {
+        App *UUID `json:"app,omitempty"`
+    }
+    if err := json.Unmarshal(data, &obj); err != nil {
+        return err
+    }
+    x.App = obj.App
+    return nil
+}
+
 // Request to start configuring U2F.
 type Config2faAuthRequest struct {
     Password ZeroizedString `json:"password"`
@@ -463,6 +513,9 @@ type SelectAccountResponse struct {
     Cookie *string `json:"cookie,omitempty"`
 }
 
+// The type of a session token.
+//
+// (The default session token type is Bearer.)
 type TokenType string
 
 // List of supported TokenType values
@@ -577,6 +630,11 @@ func (c *Client) Refresh(ctx context.Context) error {
 
 // Select one of user's account to proceed. Even if the user has only
 // one account, this needs to be called.
+//
+// For cluster-internal consistency, it may take several seconds for the
+// new Account to become the default one selected. Have your client code
+// wait for the change to propagate across the DSM cluster. If this isn’t done,
+// immediate API calls may contain information from the old Account.
 func (c *Client) SelectAccount(ctx context.Context, body SelectAccountRequest) (*SelectAccountResponse, error) {
     u := "/sys/v1/session/select_account"
     var r SelectAccountResponse

@@ -497,10 +497,13 @@ const (
     AlgorithmEc Algorithm = "EC"
     AlgorithmEcKcdsa Algorithm = "ECKCDSA"
     AlgorithmBip32 Algorithm = "BIP32"
+    AlgorithmSlip10 Algorithm = "SLIP10"
     AlgorithmBls Algorithm = "BLS"
     AlgorithmLms Algorithm = "LMS"
     AlgorithmXmss Algorithm = "XMSS"
+    AlgorithmMlDsa Algorithm = "MLDSA"
     AlgorithmMlDsaBeta Algorithm = "MLDSABETA"
+    AlgorithmMlKem Algorithm = "MLKEM"
     AlgorithmMlKemBeta Algorithm = "MLKEMBETA"
     AlgorithmHmac Algorithm = "HMAC"
     AlgorithmLedaBeta Algorithm = "LEDABETA"
@@ -816,14 +819,37 @@ const (
 
 // LDAP authentication settings.
 type AuthConfigLdap struct {
+    // A user-visible name to give this LDAP integration.
     Name string `json:"name"`
+    // The URL hosting an image to display for this LDAP integration.
+    // An empty string can also be specified (to indicate that no
+    // icon needs to be displayed).
     IconURL string `json:"icon_url"`
+    // The URL of the LDAP server, e.g., "ldap://example.org".
     LdapURL string `json:"ldap_url"`
+    // The method for resolving a user's DN.
     DnResolution LdapDnResolution `json:"dn_resolution"`
+    // TLS client settings. Note that TLS is required; it cannot be
+    // disabled or set to "opportunistic mode."
     TLS TlsConfig `json:"tls"`
+    // The subtree from which to perform LDAP searches; for example,
+    // "OU=users,DC=example,DC=org". This field is required if the DN
+    // resolution method is search-by-mail or if authorization
+    // settings are enabled for this LDAP integraton.
     BaseDn *string `json:"base_dn,omitempty"`
+    // The LDAP object class (e.g., "User") to use when looking up
+    // DSM users trying to authenticate. This field is required if
+    // the DN resolution method is search-by-mail or if authorization
+    // settings are enabled for this LDAP integraton.
     UserObjectClass *string `json:"user_object_class,omitempty"`
+    // The service account to use when performing queries against the
+    // LDAP server.
+    //
+    // Omitting this field, or setting it to null, means that no
+    // service account is needed for this LDAP integration.
     ServiceAccount *LdapServiceAccount `json:"service_account,omitempty"`
+    // Authorization settings to apply for users accessing the account
+    // with this LDAP integration.
     Authorization *LdapAuthorizationConfig `json:"authorization,omitempty"`
 }
 
@@ -984,6 +1010,27 @@ type AutoScanSettings struct {
     ScanIntervalHours uint8 `json:"scan_interval_hours"`
 }
 
+type AwsKeyMaterialId struct {
+    // key material ID reported by AWS KMS
+    KeyMaterialID string `json:"key_material_id"`
+    // The index of the key material in the AWS ListKeyRotations response
+    KeyMaterialIndex uint `json:"key_material_index"`
+}
+
+// Origin of the AWS KMS key.
+//
+// See the [AWS documentation](https://docs.aws.amazon.com/kms/latest/APIReference/API_KeyMetadata.html#KMS-Type-KeyMetadata-Origin)
+// for more information.
+type AwsKeyOrigin string
+
+// List of supported AwsKeyOrigin values
+const (
+    AwsKeyOriginAwsKms AwsKeyOrigin = "AwsKms"
+    AwsKeyOriginExternal AwsKeyOrigin = "External"
+    AwsKeyOriginAwsCloudHsm AwsKeyOrigin = "AwsCloudHsm"
+    AwsKeyOriginExternalKeyStore AwsKeyOrigin = "ExternalKeyStore"
+)
+
 type AwsKeyRotationStatus struct {
     KeyRotationDisabled *struct{}
     KeyRotationEnabled *AwsKeyRotationStatusKeyRotationEnabled
@@ -1039,7 +1086,7 @@ func (x *AwsKeyRotationStatus) UnmarshalJSON(data []byte) error {
     return nil
 }
 
-// Information and properties of AWS KMS resources.
+// Information and properties of an AWS KMS key.
 type AwsKmsInfo struct {
     MultiRegion *AwsMultiRegionInfo `json:"multi_region,omitempty"`
     // Rotation setting of the AWS KMS key. Note that this is unrelated to
@@ -1048,6 +1095,12 @@ type AwsKmsInfo struct {
     // See the [AWS documentation](https://docs.aws.amazon.com/kms/latest/APIReference/API_GetKeyRotationStatus.html)
     // for more information.
     AwsKeyRotationStatus *AwsKeyRotationStatus `json:"aws_key_rotation_status,omitempty"`
+    // The origin of the AWS KMS key.
+    //
+    // Keys with External origin are BYOK, and need key material when rotating the key in
+    // `AwsKeyMaterialMapstoSobject` groups. Conversely, keys with origin AwsKms do not
+    // need/accept key material when being rotated in those groups.
+    Origin *AwsKeyOrigin `json:"origin,omitempty"`
 }
 
 // This structure mentions various properties
@@ -1348,6 +1401,10 @@ func (x *CountAccuracy) UnmarshalJSON(data []byte) error {
     return nil
 }
 
+// A wrapper type to provide better clarity that the id
+// referenced is an integration credential object.
+type CredentialId = UUID
+
 // `CipherMode` or `RsaEncryptionPadding`, depending on the encryption algorithm.
 type CryptMode struct {
     // Block cipher mode of operation
@@ -1403,9 +1460,10 @@ type CryptographicPolicy struct {
     Eckcdsa *EcKcdsaOptionsPolicy `json:"eckcdsa,omitempty"`
     Lms *LmsOptionsPolicy `json:"lms,omitempty"`
     Xmss *XmssOptionsPolicy `json:"xmss,omitempty"`
-    MldsaBeta *MlDsaBetaOptionsPolicy `json:"mldsa_beta,omitempty"`
-    MlkemBeta *MlKemBetaOptionsPolicy `json:"mlkem_beta,omitempty"`
+    Mldsa *MlDsaOptionsPolicy `json:"mldsa,omitempty"`
+    Mlkem *MlKemOptionsPolicy `json:"mlkem,omitempty"`
     Bip32 *Bip32OptionsPolicy `json:"bip32,omitempty"`
+    Slip10 *Slip10OptionsPolicy `json:"slip10,omitempty"`
     Bls *BlsOptionsPolicy `json:"bls,omitempty"`
     Opaque *OpaqueOptionsPolicy `json:"opaque,omitempty"`
     Secret *SecretOptionsPolicy `json:"secret,omitempty"`
@@ -1670,6 +1728,7 @@ type EllipticCurve string
 const (
     EllipticCurveX25519 EllipticCurve = "X25519"
     EllipticCurveEd25519 EllipticCurve = "Ed25519"
+    EllipticCurveEd448 EllipticCurve = "Ed448"
     EllipticCurveX448 EllipticCurve = "X448"
     EllipticCurveSecP192K1 EllipticCurve = "SecP192K1"
     EllipticCurveSecP224K1 EllipticCurve = "SecP224K1"
@@ -1744,32 +1803,66 @@ func (x *ExportPolicy) UnmarshalJSON(data []byte) error {
     return nil
 }
 
+// Identification information for an external key. There are multiple
+// variants of this type to represent the different kinds of keys DSM
+// supports (e.g., AWS, Azure, etc.).
+//
+// This is not to be confused with the UUID assigned to a virtual key
+// in DSM, which is most likely different from the ID that the source
+// key (outside of DSM) has.
 type ExternalKeyId struct {
+    // A key in a legacy HSM. (DSM uses HSM Gateway to interact with
+    // such legacy HSMs using PKCS #11.)
     Pkcs11 *ExternalKeyIdPkcs11
+    // An sobject in DSM.
     Fortanix *ExternalKeyIdFortanix
+    // A key in AWS KMS.
     AwsKms *ExternalKeyIdAwsKms
+    // A key in Azure Key Vault.
     AzureKeyVault *ExternalKeyIdAzureKeyVault
+    // A key in a GCP key ring.
     GcpKeyRing *ExternalKeyIdGcpKeyRing
+    // A key in an OCI key vault.
+    OciVault *ExternalKeyIdOciVault
+    // A key in a "FIPS replication" group. There are no
+    // user-visible identifiers, since the entire key is
+    // stored (in wrapped form) inside the FIPS replication
+    // group, and not on the backing FIPS DSM nodes.
     Wrapped *struct{}
 }
+// A key in a legacy HSM. (DSM uses HSM Gateway to interact with
+// such legacy HSMs using PKCS #11.)
 type ExternalKeyIdPkcs11 struct {
+    // The PKCS #11 ID of the key.
     ID Blob `json:"id"`
+    // The PKCS #11 label of the key.
     Label Blob `json:"label"`
 }
+// An sobject in DSM.
 type ExternalKeyIdFortanix struct {
+    // The UUID assigned to the sobject.
     ID UUID `json:"id"`
 }
-type ExternalKeyIdAwsKms struct {
-    KeyArn string `json:"key_arn"`
-    KeyID string `json:"key_id"`
-}
+// A key in Azure Key Vault.
 type ExternalKeyIdAzureKeyVault struct {
+    // The version of the key.
     Version UUID `json:"version"`
+    // The name of the key.
     Label string `json:"label"`
 }
+// A key in a GCP key ring.
 type ExternalKeyIdGcpKeyRing struct {
+    // The version of the key.
     Version uint32 `json:"version"`
+    // The label for the key.
     Label string `json:"label"`
+}
+// A key in an OCI key vault.
+type ExternalKeyIdOciVault struct {
+    // The OCID of the OciKey
+    OciKeyID string `json:"oci_key_id"`
+    // The OCID of the OciKeyVersion
+    OciKeyVersion string `json:"oci_key_version"`
 }
 func (x ExternalKeyId) MarshalJSON() ([]byte, error) {
     if err := checkEnumPointers(
@@ -1779,6 +1872,7 @@ func (x ExternalKeyId) MarshalJSON() ([]byte, error) {
                   x.AwsKms != nil,
                   x.AzureKeyVault != nil,
                   x.GcpKeyRing != nil,
+                  x.OciVault != nil,
                   x.Wrapped != nil });
                   err != nil {
         return nil, err
@@ -1798,6 +1892,9 @@ func (x ExternalKeyId) MarshalJSON() ([]byte, error) {
     if x.GcpKeyRing != nil {
         return json.Marshal(x.GcpKeyRing)
     }
+    if x.OciVault != nil {
+        return json.Marshal(x.OciVault)
+    }
     if x.Wrapped != nil {
         return json.Marshal(x.Wrapped)
     }
@@ -1809,6 +1906,7 @@ func (x *ExternalKeyId) UnmarshalJSON(data []byte) error {
     x.AwsKms = nil
     x.AzureKeyVault = nil
     x.GcpKeyRing = nil
+    x.OciVault = nil
     x.Wrapped = nil
     var pkcs11 ExternalKeyIdPkcs11
     if err := json.Unmarshal(data, &pkcs11); err == nil {
@@ -1835,6 +1933,11 @@ func (x *ExternalKeyId) UnmarshalJSON(data []byte) error {
         x.GcpKeyRing = &gcpKeyRing
         return nil
     }
+    var ociVault ExternalKeyIdOciVault
+    if err := json.Unmarshal(data, &ociVault); err == nil {
+        x.OciVault = &ociVault
+        return nil
+    }
     var wrapped struct{}
     if err := json.Unmarshal(data, &wrapped); err == nil {
         x.Wrapped = &wrapped
@@ -1843,15 +1946,66 @@ func (x *ExternalKeyId) UnmarshalJSON(data []byte) error {
     return errors.Errorf("not a valid ExternalKeyId")
 }
 
-// Information specific to an external KMS. Currently, it only has AWS
-// related information.
+type ExternalKeyIdAwsKms struct {
+    // The Amazon Resource Name of the key.
+    KeyArn string `json:"key_arn"`
+    // The key ID assigned to the key.
+    KeyID string `json:"key_id"`
+    // key_material_id is applicable to AWS KMS groups with
+    // key_material_mapping: AwsKeyMaterialMapsToSobject
+    KeyMaterialID *AwsKeyMaterialId `json:"key_material_id,omitempty"`
+}
+func (x ExternalKeyIdAwsKms) MarshalJSON() ([]byte, error) {
+    m := make(map[string]interface{})
+    { // x.KeyMaterialID is flattened
+        b, err := json.Marshal(&x.KeyMaterialID)
+        if err != nil {
+            return nil, err
+        }
+        f := make(map[string]interface{})
+        if err := json.Unmarshal(b, &f); err != nil {
+            return nil, err
+        }
+        for k, v := range f {
+            m[k] = v
+        }
+    }
+    m["key_arn"] = x.KeyArn
+    m["key_id"] = x.KeyID
+    return json.Marshal(&m)
+}
+func (x *ExternalKeyIdAwsKms) UnmarshalJSON(data []byte) error {
+    if err := json.Unmarshal(data, &x.KeyMaterialID); err != nil {
+        return err
+    }
+    var r struct {
+    KeyArn string `json:"key_arn"`
+    KeyID string `json:"key_id"`
+    }
+    if err := json.Unmarshal(data, &r); err != nil {
+        return err
+    }
+    x.KeyArn = r.KeyArn
+    x.KeyID = r.KeyID
+    return nil
+}
+
+// Information about a specific external KMS key object.
 type ExternalKmsInfo struct {
+    // A limited subset of information that isn't tracked
+    // in the `custom_metadata` field.
     AWS *AwsKmsInfo
+    // Any metadata associated with the scanned OCI key.
+    //
+    // Note: DSM stores the scanned "free-form" tags from OCI and
+    // places them in `custom_metadata` for OCI virtual keys.
+    Oci *OciVaultInfo
 }
 func (x ExternalKmsInfo) MarshalJSON() ([]byte, error) {
     if err := checkEnumPointers(
                   "ExternalKmsInfo", 
-                  []bool{ x.AWS != nil });
+                  []bool{ x.AWS != nil,
+                  x.Oci != nil });
                   err != nil {
         return nil, err
     }
@@ -1866,11 +2020,21 @@ func (x ExternalKmsInfo) MarshalJSON() ([]byte, error) {
             return nil, err
         }
         m["type"] = "AWS"
+    case x.Oci != nil:
+        b, err := json.Marshal(x.Oci)
+        if err != nil {
+            return nil, err
+        }
+        if err := json.Unmarshal(b, &m); err != nil {
+            return nil, err
+        }
+        m["type"] = "Oci"
     }
     return json.Marshal(m)
 }
 func (x *ExternalKmsInfo) UnmarshalJSON(data []byte) error {
     x.AWS = nil
+    x.Oci = nil
     var h struct {
         Tag string `json:"type"`
     }
@@ -1884,18 +2048,34 @@ func (x *ExternalKmsInfo) UnmarshalJSON(data []byte) error {
             return err
         }
         x.AWS = &aWS
+    case "Oci":
+        var oci OciVaultInfo
+        if err := json.Unmarshal(data, &oci); err != nil {
+            return err
+        }
+        x.Oci = &oci
     default:
          return errors.Errorf("invalid tag value: %v", h.Tag)
     }
     return nil
 }
 
-// This describes an external object -- specifically, information about its source object.
+// This describes an external object -- specifically, information about its
+// source object.
 type ExternalSobjectInfo struct {
     // The ID of the external object in the external HSM.
     ID ExternalKeyId `json:"id"`
     // The group which corresponds to the external HSM.
     HsmGroupID UUID `json:"hsm_group_id"`
+    // While Azure, GCP, and AWS-backed keys primarily rely on an sobject's `custom_metadata` field
+    // to manage external key versions, names, etc., this quickly becomes error prone (due to
+    // the modifiable nature of `custom_metadata`), and places Fortanix-semantics on a field
+    // meant solely for client use.
+    //
+    // Therefore, this field provides a more 'static' view of the information about
+    // a single external KMS key without fear of spurious updates. Going forward,
+    // the goal is to utilize this field more reliably for all cloud providers
+    // DSM supports; however, today, it is only used for AWS and OCI.
     ExternalKmsInfo *ExternalKmsInfo `json:"external_kms_info,omitempty"`
 }
 
@@ -1953,6 +2133,20 @@ func (x *Fido2MfaChallengeResponse) UnmarshalJSON(data []byte) error {
 // In any case, ranges should not overlap with each other, and should not contain surrogate
 // code points.
 type FpeCharSet = [][2]Char
+
+type FpeChecksum string
+
+// List of supported FpeChecksum values
+const (
+    FpeChecksumLuhn FpeChecksum = "luhn"
+)
+
+// A set of words, repeated an amount of times.
+type FpeCode struct {
+    Words FpeWords `json:"words"`
+    MinRepetitions *uint `json:"min_repetitions,omitempty"`
+    MaxRepetitions *uint `json:"max_repetitions,omitempty"`
+}
 
 // Structure of a compound portion of a complex tokenization data type, itself composed of
 // smaller parts.
@@ -2117,7 +2311,7 @@ type FpeConstraints struct {
     // Specifies that this portion is supposed to represent a date, or part of one. If used,
     // no other constraints can be specified on this part.
     Date *FpeDateConstraint `json:"date,omitempty"`
-    // The subparts to apply the constaints to. If not specified, the constraints will be
+    // The subparts to apply the constraints to. If not specified, the constraints will be
     // applied to all subparts (recursively).
     AppliesTo *FpeConstraintsApplicability `json:"applies_to,omitempty"`
 }
@@ -2132,11 +2326,13 @@ type FpeConstraintsApplicability struct {
     // is a BTreeMap where for each key-value pair, the key represents the "index" of the subpart
     // (with the first subpart having index 0), and the value is an FpeConstraintsApplicability
     // instance. Note that a Multiple part only allows for one possible key-value pair, since it
-    // only contains one subpart.
+    // only contains one subpart. For Concat parts, the key is the zero-based index of the subpart
+    // in the `concat` field, and for Multiple parts, this is always 0 (due to a Multiple having
+    // only one subpart).
     //
     // This cannot be used with OR parts; instead, specify constraints individually on each
     // relevant subpart.
-    BySubparts *map[FpeSubpartIndex]FpeConstraintsApplicability
+    BySubparts *map[string]FpeConstraintsApplicability
 }
 func (x FpeConstraintsApplicability) MarshalJSON() ([]byte, error) {
     if err := checkEnumPointers(
@@ -2162,7 +2358,7 @@ func (x *FpeConstraintsApplicability) UnmarshalJSON(data []byte) error {
         x.Simple = &simple
         return nil
     }
-    var bySubparts map[FpeSubpartIndex]FpeConstraintsApplicability
+    var bySubparts map[string]FpeConstraintsApplicability
     if err := json.Unmarshal(data, &bySubparts); err == nil {
         x.BySubparts = &bySubparts
         return nil
@@ -2445,6 +2641,101 @@ type FpeEncryptedPart struct {
     Mask *FpePreserveMask `json:"mask,omitempty"`
 }
 
+// The second generation of Fortanix Tokenization scheme.
+type FpeFormatV2 struct {
+    // A token is accepted if it is accepted by any of these variants. Note
+    // tokenization results depend on the order of this list.
+    Variants []FpeVariant `json:"variants"`
+    // The tokenization mode. If no mode is specified, the "PreserveFormat"
+    // mode is selected.
+    Mode *FpeTokenizeMode `json:"mode,omitempty"`
+    // The input processing mode.
+    InputProcessing *FpeInputProcessing `json:"input_processing,omitempty"`
+}
+
+// A concatenation of codes, that can be repeated an amount of times. An
+// amount of leading and trailing characters can be preserved, this is,
+// unmodified by tokenization.
+type FpeGroup struct {
+    Codes []FpeCode `json:"codes"`
+    // A group cannot be omitted, thus this field must be positive if present.
+    MinRepetitions *uint `json:"min_repetitions,omitempty"`
+    MaxRepetitions *uint `json:"max_repetitions,omitempty"`
+    // Amount of leading and trailing characters to preserve in this group.
+    // Preserved characters are the leading/trailing characters of the whole
+    // group, not individual repetitions.
+    Preserve *[]uint `json:"preserve,omitempty"`
+}
+
+type FpeInputDefaultProcessing string
+
+// List of supported FpeInputDefaultProcessing values
+const (
+    FpeInputDefaultProcessingStrip FpeInputDefaultProcessing = "strip"
+    FpeInputDefaultProcessingReject FpeInputDefaultProcessing = "reject"
+)
+
+// Options to apply some pre- and post-processing to the input.
+type FpeInputProcessing struct {
+    // Removes characters from the input if they do not appear anywhere in
+    // this format.
+    StripUnknown *struct{}
+    // Pass unknown characters to the token in-situ (example (12#3[4] -> 61#7[4]).
+    // Only available in PreserveLength mode.
+    PassthroughUnknown *struct{}
+    PassthroughSpecific *FpeInputProcessingPassthroughSpecific
+}
+type FpeInputProcessingPassthroughSpecific struct {
+    Passthrough []Char `json:"passthrough"`
+    Other FpeInputDefaultProcessing `json:"other"`
+}
+func (x FpeInputProcessing) MarshalJSON() ([]byte, error) {
+    if err := checkEnumPointers(
+                  "FpeInputProcessing", 
+                  []bool{ x.StripUnknown != nil,
+                  x.PassthroughUnknown != nil,
+                  x.PassthroughSpecific != nil });
+                  err != nil {
+        return nil, err
+    }
+    switch {
+    case x.StripUnknown != nil:
+        return []byte(`"strip_unknown"`), nil
+    case x.PassthroughUnknown != nil:
+        return []byte(`"passthrough_unknown"`), nil
+    }
+    var obj struct {
+        PassthroughSpecific *FpeInputProcessingPassthroughSpecific `json:"passthrough_specific,omitempty"`
+    }
+    obj.PassthroughSpecific = x.PassthroughSpecific
+    return json.Marshal(obj)
+}
+func (x *FpeInputProcessing) UnmarshalJSON(data []byte) error {
+    x.StripUnknown = nil
+    x.PassthroughUnknown = nil
+    x.PassthroughSpecific = nil
+    var str string
+    if err := json.Unmarshal(data, &str); err == nil {
+        switch str {
+        case "strip_unknown":
+            x.StripUnknown = &struct{}{}
+        case "passthrough_unknown":
+            x.PassthroughUnknown = &struct{}{}
+        default:
+            return errors.Errorf("invalid value for FpeInputProcessing: %v", str)
+        }
+        return nil
+    }
+    var obj struct {
+        PassthroughSpecific *FpeInputProcessingPassthroughSpecific `json:"passthrough_specific,omitempty"`
+    }
+    if err := json.Unmarshal(data, &obj); err != nil {
+        return err
+    }
+    x.PassthroughSpecific = obj.PassthroughSpecific
+    return nil
+}
+
 // A structure for specifying a particular date consisting of a month and a year, for use in an
 // FpeDate structure.
 type FpeMonthYearDate struct {
@@ -2464,6 +2755,7 @@ type FpeOptions struct {
     // specifying any FPE options, as it is more expressive than
     // FpeOptionsBasic.
     Advanced *FpeOptionsAdvanced
+    V2 *FpeOptionsV2
 }
 // Advanced FPE options. It is recommended to use this for
 // specifying any FPE options, as it is more expressive than
@@ -2474,11 +2766,16 @@ type FpeOptionsAdvanced struct {
     // The user-provided name for the data type.
     Description *string `json:"description,omitempty"`
 }
+type FpeOptionsV2 struct {
+    FormatV2 FpeFormatV2 `json:"format_v2"`
+    Description *string `json:"description,omitempty"`
+}
 func (x FpeOptions) MarshalJSON() ([]byte, error) {
     if err := checkEnumPointers(
                   "FpeOptions", 
                   []bool{ x.Basic != nil,
-                  x.Advanced != nil });
+                  x.Advanced != nil,
+                  x.V2 != nil });
                   err != nil {
         return nil, err
     }
@@ -2488,11 +2785,15 @@ func (x FpeOptions) MarshalJSON() ([]byte, error) {
     if x.Advanced != nil {
         return json.Marshal(x.Advanced)
     }
+    if x.V2 != nil {
+        return json.Marshal(x.V2)
+    }
     panic("unreachable")
 }
 func (x *FpeOptions) UnmarshalJSON(data []byte) error {
     x.Basic = nil
     x.Advanced = nil
+    x.V2 = nil
     var basic FpeOptionsBasic
     if err := json.Unmarshal(data, &basic); err == nil {
         x.Basic = &basic
@@ -2501,6 +2802,11 @@ func (x *FpeOptions) UnmarshalJSON(data []byte) error {
     var advanced FpeOptionsAdvanced
     if err := json.Unmarshal(data, &advanced); err == nil {
         x.Advanced = &advanced
+        return nil
+    }
+    var v2 FpeOptionsV2
+    if err := json.Unmarshal(data, &v2); err == nil {
+        x.V2 = &v2
         return nil
     }
     return errors.Errorf("not a valid FpeOptions")
@@ -2584,10 +2890,104 @@ func (x *FpePreserveMask) UnmarshalJSON(data []byte) error {
     return errors.Errorf("not a valid FpePreserveMask")
 }
 
-// An index for listing subparts of a compound part to which certain constraints are to be applied.
-// For Concat parts, this is the zero-based index of the subpart in the `concat` field, and for
-// Multiple parts, this is always 0 (due to a Multiple having only one subpart).
-type FpeSubpartIndex = uint
+// A concatenation of groups, optionally including a checksum.
+type FpeSection struct {
+    Groups []FpeGroup `json:"groups"`
+    Checksum *FpeChecksum `json:"checksum,omitempty"`
+}
+
+// How to tokenize a given input. The most secure option is "PreserveFormat".
+type FpeTokenizeMode string
+
+// List of supported FpeTokenizeMode values
+const (
+    // The default and most secure option, hides topology of data sets. It
+    // tokenizes accross different variants of a format.
+    FpeTokenizeModePreserveFormat FpeTokenizeMode = "preserve_format"
+    // Tokenizes within the same variant the input was accepted.
+    FpeTokenizeModePreserveVariant FpeTokenizeMode = "preserve_variant"
+    // The output token has the same length as the input.
+    FpeTokenizeModePreserveLength FpeTokenizeMode = "preserve_length"
+)
+
+// A concatenation of sections.
+type FpeVariant struct {
+    Sections []FpeSection `json:"sections"`
+}
+
+// A set of fixed-length strings.
+type FpeWords struct {
+    // A union of positive integer ranges.
+    //
+    // ```plain
+    // Examples: [[0, 400], [402, 1000]]
+    //         = {0000, 0001, ..., 0400, 0402, ..., 1000}
+    //
+    //           [[1,3], [49, 50]] with optional padding of length 8
+    //         = {00000001, 00000002, 00000003, 00000049, 00000050}
+    //           (accepts 1, 01, 00002, 49, 000050, etc)
+    // ```
+    IntegerRanges *FpeWordsIntegerRanges
+    Alphabet *FpeCharSet
+    Custom *FpeWordsCustom
+}
+// A union of positive integer ranges.
+//
+// ```plain
+// Examples: [[0, 400], [402, 1000]]
+//         = {0000, 0001, ..., 0400, 0402, ..., 1000}
+//
+//           [[1,3], [49, 50]] with optional padding of length 8
+//         = {00000001, 00000002, 00000003, 00000049, 00000050}
+//           (accepts 1, 01, 00002, 49, 000050, etc)
+// ```
+type FpeWordsIntegerRanges struct {
+    Ranges [][]uint64 `json:"ranges"`
+    // If this field is true, this set accepts only numeric strings
+    // padded to the length given by the maximum integer in the range
+    // set.
+    PaddingRequired bool `json:"padding_required"`
+}
+type FpeWordsCustom struct {
+    // Examples: {"john", "jane"}, {".", "-", "_", "@", " "}
+    List []string `json:"list"`
+}
+func (x FpeWords) MarshalJSON() ([]byte, error) {
+    if err := checkEnumPointers(
+                  "FpeWords", 
+                  []bool{ x.IntegerRanges != nil,
+                  x.Alphabet != nil,
+                  x.Custom != nil });
+                  err != nil {
+        return nil, err
+    }
+    var obj struct {
+        IntegerRanges *FpeWordsIntegerRanges `json:"integer_ranges,omitempty"`
+        Alphabet *FpeCharSet `json:"alphabet,omitempty"`
+        Custom *FpeWordsCustom `json:"custom,omitempty"`
+    }
+    obj.IntegerRanges = x.IntegerRanges
+    obj.Alphabet = x.Alphabet
+    obj.Custom = x.Custom
+    return json.Marshal(obj)
+}
+func (x *FpeWords) UnmarshalJSON(data []byte) error {
+    x.IntegerRanges = nil
+    x.Alphabet = nil
+    x.Custom = nil
+    var obj struct {
+        IntegerRanges *FpeWordsIntegerRanges `json:"integer_ranges,omitempty"`
+        Alphabet *FpeCharSet `json:"alphabet,omitempty"`
+        Custom *FpeWordsCustom `json:"custom,omitempty"`
+    }
+    if err := json.Unmarshal(data, &obj); err != nil {
+        return err
+    }
+    x.IntegerRanges = obj.IntegerRanges
+    x.Alphabet = obj.Alphabet
+    x.Custom = obj.Custom
+    return nil
+}
 
 type GetGroupsParams struct {
     Limit *uint `json:"limit,omitempty"`
@@ -2612,7 +3012,7 @@ type GetGroupsParams struct {
     //   Note: If there is a `limit` specified in the request and DSM returns `limit`-many items in the
     //   response, it will still include a fresh continuation token if there are more items in the collection.
     //   Additionally, unlike other query parameters, `limit` is not required to remain unchanged in a chain of
-    //   requests with `coninutation_token`s.
+    //   requests with `continuation_token`s.
     // - If omitted, the backend returns just a collection of groups with no metadata.
     ContinuationToken *string `json:"continuation_token,omitempty"`
 }
@@ -2697,88 +3097,88 @@ type GoogleAccessReasonPolicy struct {
     AllowMissingReason bool `json:"allow_missing_reason"`
 }
 
-type GroupPermissions uint64
+type GroupPermissions map[string]struct{}
 
 // List of supported GroupPermissions values
 const (
     //  Permission to create group-level approval policy. Note that
     //  updating/deleting the approval policy is protected by the approval
     //  policy itself. Implies `GET_GROUP`.
-    GroupPermissionsCreateGroupApprovalPolicy GroupPermissions = 1 << iota
+    GroupPermissionsCreateGroupApprovalPolicy string = "CREATE_GROUP_APPROVAL_POLICY"
     //  Permission to update external HSM/KMS configurations. Note that this
     //  is only useful for groups backed by external HSM/KMS. Implies
     //  `GET_GROUP`.
-    GroupPermissionsUpdateGroupExternalLinks
+    GroupPermissionsUpdateGroupExternalLinks string = "UPDATE_GROUP_EXTERNAL_LINKS"
     //  Permission to manage group-level client configurations. Implies
     //  `GET_GROUP`.
-    GroupPermissionsManageGroupClientConfigs
+    GroupPermissionsManageGroupClientConfigs string = "MANAGE_GROUP_CLIENT_CONFIGS"
     //  Permission to update name, description and custom metadata of the
     //  group. Implies `GET_GROUP`.
-    GroupPermissionsUpdateGroupProfile
+    GroupPermissionsUpdateGroupProfile string = "UPDATE_GROUP_PROFILE"
     //  Permission to delete the group. Implies `GET_GROUP`.
-    GroupPermissionsDeleteGroup
+    GroupPermissionsDeleteGroup string = "DELETE_GROUP"
     //  Permission to map external roles to DSM groups for apps authorized
     //  through LDAP. Implies `GET_GROUP`.
-    GroupPermissionsMapExternalRolesForApps
+    GroupPermissionsMapExternalRolesForApps string = "MAP_EXTERNAL_ROLES_FOR_APPS"
     //  Permission to map external roles to DSM groups for users authorized
     //  through LDAP. Implies `GET_GROUP`.
-    GroupPermissionsMapExternalRolesForUsers
+    GroupPermissionsMapExternalRolesForUsers string = "MAP_EXTERNAL_ROLES_FOR_USERS"
     //  Currently implies `MAP_EXTERNAL_ROLES_FOR_APPS`,
     //  `MAP_EXTERNAL_ROLES_FOR_USERS`, and `GET_GROUP` permissions.
-    GroupPermissionsMapExternalRoles
+    GroupPermissionsMapExternalRoles string = "MAP_EXTERNAL_ROLES"
     //  Permission to add users to the group.
-    GroupPermissionsAddUsersToGroup
+    GroupPermissionsAddUsersToGroup string = "ADD_USERS_TO_GROUP"
     //  Permission to remove users from the group.
-    GroupPermissionsDeleteUsersFromGroup
+    GroupPermissionsDeleteUsersFromGroup string = "DELETE_USERS_FROM_GROUP"
     //  Permission to change users' role in the group.
-    GroupPermissionsUpdateUsersGroupRole
+    GroupPermissionsUpdateUsersGroupRole string = "UPDATE_USERS_GROUP_ROLE"
     //  Currently implies `ADD_USERS_TO_GROUP`, `DELETE_USERS_FROM_GROUP`,
     //  and `UPDATE_USERS_GROUP_ROLE` permissions.
-    GroupPermissionsManageGroupUsers
+    GroupPermissionsManageGroupUsers string = "MANAGE_GROUP_USERS"
     //  Permission to create various group-level security object policies
     //  including cryptographic policy, key metadata policy and key history
     //  policy. Implies `GET_GROUP`.
-    GroupPermissionsCreateGroupSobjectPolicies
+    GroupPermissionsCreateGroupSobjectPolicies string = "CREATE_GROUP_SOBJECT_POLICIES"
     //  Permission to update various group-level security object policies
     //  including cryptographic policy, key metadata policy and key history
     //  policy. Implies `GET_GROUP`.
-    GroupPermissionsUpdateGroupSobjectPolicies
+    GroupPermissionsUpdateGroupSobjectPolicies string = "UPDATE_GROUP_SOBJECT_POLICIES"
     //  Permission to delete various group-level security object policies
     //  including cryptographic policy, key metadata policy and key history
     //  policy. Implies `GET_GROUP`.
-    GroupPermissionsDeleteGroupSobjectPolicies
+    GroupPermissionsDeleteGroupSobjectPolicies string = "DELETE_GROUP_SOBJECT_POLICIES"
     //  Currently implies `CREATE_GROUP_SOBJECT_POLICIES`,
     //  `UPDATE_GROUP_SOBJECT_POLICIES`, `DELETE_GROUP_SOBJECT_POLICIES`,
     //  and `GET_GROUP` permissions.
-    GroupPermissionsManageGroupSobjectPolicies
+    GroupPermissionsManageGroupSobjectPolicies string = "MANAGE_GROUP_SOBJECT_POLICIES"
     //  Permission to create key custodian policy for the group. Implies
     //  `GET_GROUP`.
-    GroupPermissionsCreateGroupCustodianPolicy
+    GroupPermissionsCreateGroupCustodianPolicy string = "CREATE_GROUP_CUSTODIAN_POLICY"
     //  Permission to update group's key custodian policy. Implies
     //  `GET_GROUP`.
-    GroupPermissionsUpdateGroupCustodianPolicy
+    GroupPermissionsUpdateGroupCustodianPolicy string = "UPDATE_GROUP_CUSTODIAN_POLICY"
     //  Permission to delete group's key custodian policy. Implies
     //  `GET_GROUP`.
-    GroupPermissionsDeleteGroupCustodianPolicy
+    GroupPermissionsDeleteGroupCustodianPolicy string = "DELETE_GROUP_CUSTODIAN_POLICY"
     //  Currently implies `CREATE_GROUP_CUSTODIAN_POLICY`,
     //  `UPDATE_GROUP_CUSTODIAN_POLICY`, `DELETE_GROUP_CUSTODIAN_POLICY`,
     //  and `GET_GROUP` permissions.
-    GroupPermissionsManageGroupCustodianPolicy
+    GroupPermissionsManageGroupCustodianPolicy string = "MANAGE_GROUP_CUSTODIAN_POLICY"
     //  Permission to create cryptographic apps. Implies `GET_APPS`.
-    GroupPermissionsCreateApps
+    GroupPermissionsCreateApps string = "CREATE_APPS"
     //  Permission to update cryptographic apps. Implies `GET_APPS`.
-    GroupPermissionsUpdateApps
+    GroupPermissionsUpdateApps string = "UPDATE_APPS"
     //  Permission to retrieve cryptographic apps' secrets. Note that not
     //  all cryptographic app credentials contain secrets. If a
     //  cryptographic app's credential does not contain any secrets,
     //  `GET_APPS` permission is sufficient to call the `GetAppCredential`
     //  API. Implies `GET_APPS`.
-    GroupPermissionsRetrieveAppSecrets
+    GroupPermissionsRetrieveAppSecrets string = "RETRIEVE_APP_SECRETS"
     //  Permission to delete cryptographic apps. Implies `GET_APPS`.
-    GroupPermissionsDeleteApps
+    GroupPermissionsDeleteApps string = "DELETE_APPS"
     //  Currently implies `CREATE_APPS`, `UPDATE_APPS`,
     //  `RETRIEVE_APP_SECRETS`, `DELETE_APPS`, and `GET_APPS` permissions.
-    GroupPermissionsManageApps
+    GroupPermissionsManageApps string = "MANAGE_APPS"
     //  Permission to create plugins. Implies `GET_PLUGINS`.
     //  For creating a plugin, following group permissions are also required
     //  in each group plugin is being added, to prevent privilege escalation:
@@ -2790,7 +3190,7 @@ const (
     //  `GET_GROUP`, `GET_SOBJECTS`, `GET_APPS`, `GET_PLUGINS`, `GET_AUDIT_LOGS`
     //  Following account permissions are required as well:
     //  `GET_ALL_USERS`
-    GroupPermissionsCreatePlugins
+    GroupPermissionsCreatePlugins string = "CREATE_PLUGINS"
     //  Permission to update plugins. Implies `GET_PLUGINS`.
     //  For updating a plugin, following group permissions are also required
     //  in each group plugin is being added, to prevent privilege escalation:
@@ -2802,446 +3202,164 @@ const (
     //  Following account permissions are required as well while adding
     //  new groups:
     //  `GET_ALL_USERS`
-    GroupPermissionsUpdatePlugins
+    GroupPermissionsUpdatePlugins string = "UPDATE_PLUGINS"
     //  Permission to invoke plugins. Implies `GET_PLUGINS`.
-    GroupPermissionsInvokePlugins
+    GroupPermissionsInvokePlugins string = "INVOKE_PLUGINS"
     //  Permission to delete plugins. Implies `GET_PLUGINS`.
-    GroupPermissionsDeletePlugins
+    GroupPermissionsDeletePlugins string = "DELETE_PLUGINS"
     //  Currently implies `CREATE_PLUGINS`, `UPDATE_PLUGINS`,
     //  `INVOKE_PLUGINS`, `DELETE_PLUGINS`, and `GET_PLUGINS` permissions.
-    GroupPermissionsManagePlugins
+    GroupPermissionsManagePlugins string = "MANAGE_PLUGINS"
     //  Permission to create security objects. This permission is required
     //  for APIs that result in creation of a new security object including:
     //  Generate, Import, Unwrap. Also required in destination group when
     //  moving a key to a different group or when copying a key. Implies
     //  `GET_SOBJECTS`.
-    GroupPermissionsCreateSobjects
+    GroupPermissionsCreateSobjects string = "CREATE_SOBJECTS"
     //  Permission to export security objects. This permission is required
     //  for Export, ExportByComponents, Copy (depending on destination
     //  group), Restore, and Wrap (for wrapped security object) APIs.
     //  Implies `GET_SOBJECTS`.
-    GroupPermissionsExportSobjects
+    GroupPermissionsExportSobjects string = "EXPORT_SOBJECTS"
     //  Permission to copy security objects. This permission is required in
     //  the source group when calling the Copy API. Implies `GET_SOBJECTS`.
-    GroupPermissionsCopySobjects
+    GroupPermissionsCopySobjects string = "COPY_SOBJECTS"
     //  Permission to wrap security objects. This permission is required in
     //  the wrapping security object's group. Implies `GET_SOBJECTS`.
-    GroupPermissionsWrapSobjects
+    GroupPermissionsWrapSobjects string = "WRAP_SOBJECTS"
     //  Permission to unwrap security objects. This permission is required
     //  in the unwrapping security object's group. Implies `GET_SOBJECTS`.
-    GroupPermissionsUnwrapSobjects
+    GroupPermissionsUnwrapSobjects string = "UNWRAP_SOBJECTS"
     //  Permission to derive other security objects. Implies `GET_SOBJECTS`.
-    GroupPermissionsDeriveSobjects
+    GroupPermissionsDeriveSobjects string = "DERIVE_SOBJECTS"
     //  Permission to transform security objects. Implies `GET_SOBJECTS`.
-    GroupPermissionsTransformSobjects
+    GroupPermissionsTransformSobjects string = "TRANSFORM_SOBJECTS"
     //  Permission to enable/disable security objects. Implies
     //  `GET_SOBJECTS`.
-    GroupPermissionsUpdateSobjectsEnabledState
+    GroupPermissionsUpdateSobjectsEnabledState string = "UPDATE_SOBJECTS_ENABLED_STATE"
     //  Permission to rotate (a.k.a. "rekey") security objects. Implies
     //  `GET_SOBJECTS`.
-    GroupPermissionsRotateSobjects
+    GroupPermissionsRotateSobjects string = "ROTATE_SOBJECTS"
     //  Permission to delete security objects. Implies `GET_SOBJECTS`.
-    GroupPermissionsDeleteSobjects
+    GroupPermissionsDeleteSobjects string = "DELETE_SOBJECTS"
     //  Permission to destroy security objects. Implies `GET_SOBJECTS`.
-    GroupPermissionsDestroySobjects
+    GroupPermissionsDestroySobjects string = "DESTROY_SOBJECTS"
     //  Permission to revoke security objects, i.e. mark security objects as
     //  deactivated or compromised. Implies `GET_SOBJECTS`.
-    GroupPermissionsRevokeSobjects
+    GroupPermissionsRevokeSobjects string = "REVOKE_SOBJECTS"
     //  Permission to activate security objects. Implies `GET_SOBJECTS`.
-    GroupPermissionsActivateSobjects
+    GroupPermissionsActivateSobjects string = "ACTIVATE_SOBJECTS"
     //  Permission to revert changes to security objects. Implies
     //  `GET_SOBJECTS`.
-    GroupPermissionsRevertSobjects
+    GroupPermissionsRevertSobjects string = "REVERT_SOBJECTS"
     //  Permission to delete key material including removing the private key
     //  part of an asymmetric key pair and removing key material of security
     //  objects backed by external HSM/KMS. Implies `GET_SOBJECTS`.
-    GroupPermissionsDeleteKeyMaterial
+    GroupPermissionsDeleteKeyMaterial string = "DELETE_KEY_MATERIAL"
     //  Permission to move security objects. This permission is required for
     //  changing the group of a security object in the source group. Note
     //  that changing the group of a security object also requires
     //  `CREATE_SOBJECTS` permission in the destination group. Implies
     //  `GET_SOBJECTS`.
-    GroupPermissionsMoveSobjects
+    GroupPermissionsMoveSobjects string = "MOVE_SOBJECTS"
     //  Permission to update key operations of security objects. Implies
     //  `GET_SOBJECTS`.
-    GroupPermissionsUpdateKeyOps
+    GroupPermissionsUpdateKeyOps string = "UPDATE_KEY_OPS"
     //  Permission to update individual security objects' policies. This
     //  permission allows updating RSA options, as well as Google access
     //  reason policy (for use with Google EKM APIs) defined on the security
     //  object itself. Implies `GET_SOBJECTS`.
-    GroupPermissionsUpdateSobjectPolicies
+    GroupPermissionsUpdateSobjectPolicies string = "UPDATE_SOBJECT_POLICIES"
     //  Permission to update name, description, custom metadata, key links
     //  (currently only create parent link), and publish public key settings
     //  of security objects. Implies `GET_SOBJECTS`.
-    GroupPermissionsUpdateSobjectsProfile
+    GroupPermissionsUpdateSobjectsProfile string = "UPDATE_SOBJECTS_PROFILE"
     //  Permission to scan for security objects in external HSM/KMS. Implies
     //  `GET_SOBJECTS`.
-    GroupPermissionsScanExternalSobjects
+    GroupPermissionsScanExternalSobjects string = "SCAN_EXTERNAL_SOBJECTS"
     //  Permission to restore key material of security objects backed by
     //  external HSM/KMS. Note that calling the Restore API needs this
     //  permission in the destination group as well as `EXPORT_SOBJECTS`
     //  permission in the source group (where the object was copied from
     //  originally). Implies `GET_SOBJECTS`.
-    GroupPermissionsRestoreExternalSobjects
+    GroupPermissionsRestoreExternalSobjects string = "RESTORE_EXTERNAL_SOBJECTS"
     //  Permission to call Workspace CSE Wrap API.
-    GroupPermissionsWrapWorkspaceCse
+    GroupPermissionsWrapWorkspaceCse string = "WRAP_WORKSPACE_CSE"
     //  Permission to call Workspace CSE Unwrap API.
-    GroupPermissionsUnwrapWorkspaceCse
-    GroupPermissionsWorkspaceCse
+    GroupPermissionsUnwrapWorkspaceCse string = "UNWRAP_WORKSPACE_CSE"
+    GroupPermissionsWorkspaceCse string = "WORKSPACE_CSE"
     //  Permission to get information about the group.
-    GroupPermissionsGetGroup
+    GroupPermissionsGetGroup string = "GET_GROUP"
     //  Permission to get security objects stored in the group.
-    GroupPermissionsGetSobjects
+    GroupPermissionsGetSobjects string = "GET_SOBJECTS"
     //  Permission to get cryptographic apps in the group.
-    GroupPermissionsGetApps
+    GroupPermissionsGetApps string = "GET_APPS"
     //  Permission to get plugin in the group.
-    GroupPermissionsGetPlugins
+    GroupPermissionsGetPlugins string = "GET_PLUGINS"
     //  Permission to get approval requests related to the group.
-    GroupPermissionsGetGroupApprovalRequests
+    GroupPermissionsGetGroupApprovalRequests string = "GET_GROUP_APPROVAL_REQUESTS"
     //  Permission to get audit logs related to the group.
-    GroupPermissionsGetAuditLogs
+    GroupPermissionsGetAuditLogs string = "GET_AUDIT_LOGS"
     //  Permission to update or remove wrapping key of the  group
-    GroupPermissionsManageGroupWrappingKey
+    GroupPermissionsManageGroupWrappingKey string = "MANAGE_GROUP_WRAPPING_KEY"
     //  Permission to encapsulate security objects. Implies `CREATE_SOBJECTS`.
-    GroupPermissionsEncapsulateSobjects
+    GroupPermissionsEncapsulateSobjects string = "ENCAPSULATE_SOBJECTS"
     //  Permission to decapsulate security objects. Implies `CREATE_SOBJECTS`.
-    GroupPermissionsDecapsulateSobjects
+    GroupPermissionsDecapsulateSobjects string = "DECAPSULATE_SOBJECTS"
+    //  Permission to lookup a credential object
+    GroupPermissionsGetCredentials string = "GET_CREDENTIALS"
+    //  Permission to create a credential object (Implies GET_CREDENTIALS)
+    GroupPermissionsCreateCredentials string = "CREATE_CREDENTIALS"
+    //  Permission to update a credential object (Implies GET_CREDENTIALS)
+    GroupPermissionsUpdateCredentials string = "UPDATE_CREDENTIALS"
+    //  Permission to delete a credential object (Implies GET_CREDENTIALS)
+    GroupPermissionsDeleteCredentials string = "DELETE_CREDENTIALS"
+    //  Permission to assign credential objects to integration points (Implies GET_CREDENTIALS)
+    GroupPermissionsAssignCredentials string = "ASSIGN_CREDENTIALS"
+    //  Permission to manage credential objects (Currently implies `GET_CREDENTIALS`,
+    //  `CREATE_CREDENTIALS`, `UPDATE_CREDENTIALS`, `DELETE_CREDENTIALS`, and 
+    //  `ASSIGN_CREDENTIALS`).
+    GroupPermissionsManageCredentials string = "MANAGE_CREDENTIALS"
 )
+
+func NewGroupPermissions() GroupPermissions {
+    return make(map[string]struct{})
+}
+
+func (p *GroupPermissions) Add(value string) {
+    (*p)[value] = struct{}{}
+}
+
+func (p *GroupPermissions) Remove(value string) {
+    delete(*p, value)
+}
+
+func (p GroupPermissions) Values() []string {
+    values := make([]string, 0, len(p))
+    for key, _ := range p {
+        values = append(values, key)
+    }
+    return values
+}
 
 // MarshalJSON converts GroupPermissions to an array of strings
 func (x GroupPermissions) MarshalJSON() ([]byte, error) {
-    s := make([]string, 0)
-    if x & GroupPermissionsCreateGroupApprovalPolicy == GroupPermissionsCreateGroupApprovalPolicy {
-        s = append(s, "CREATE_GROUP_APPROVAL_POLICY")
-    }
-    if x & GroupPermissionsUpdateGroupExternalLinks == GroupPermissionsUpdateGroupExternalLinks {
-        s = append(s, "UPDATE_GROUP_EXTERNAL_LINKS")
-    }
-    if x & GroupPermissionsManageGroupClientConfigs == GroupPermissionsManageGroupClientConfigs {
-        s = append(s, "MANAGE_GROUP_CLIENT_CONFIGS")
-    }
-    if x & GroupPermissionsUpdateGroupProfile == GroupPermissionsUpdateGroupProfile {
-        s = append(s, "UPDATE_GROUP_PROFILE")
-    }
-    if x & GroupPermissionsDeleteGroup == GroupPermissionsDeleteGroup {
-        s = append(s, "DELETE_GROUP")
-    }
-    if x & GroupPermissionsMapExternalRolesForApps == GroupPermissionsMapExternalRolesForApps {
-        s = append(s, "MAP_EXTERNAL_ROLES_FOR_APPS")
-    }
-    if x & GroupPermissionsMapExternalRolesForUsers == GroupPermissionsMapExternalRolesForUsers {
-        s = append(s, "MAP_EXTERNAL_ROLES_FOR_USERS")
-    }
-    if x & GroupPermissionsMapExternalRoles == GroupPermissionsMapExternalRoles {
-        s = append(s, "MAP_EXTERNAL_ROLES")
-    }
-    if x & GroupPermissionsAddUsersToGroup == GroupPermissionsAddUsersToGroup {
-        s = append(s, "ADD_USERS_TO_GROUP")
-    }
-    if x & GroupPermissionsDeleteUsersFromGroup == GroupPermissionsDeleteUsersFromGroup {
-        s = append(s, "DELETE_USERS_FROM_GROUP")
-    }
-    if x & GroupPermissionsUpdateUsersGroupRole == GroupPermissionsUpdateUsersGroupRole {
-        s = append(s, "UPDATE_USERS_GROUP_ROLE")
-    }
-    if x & GroupPermissionsManageGroupUsers == GroupPermissionsManageGroupUsers {
-        s = append(s, "MANAGE_GROUP_USERS")
-    }
-    if x & GroupPermissionsCreateGroupSobjectPolicies == GroupPermissionsCreateGroupSobjectPolicies {
-        s = append(s, "CREATE_GROUP_SOBJECT_POLICIES")
-    }
-    if x & GroupPermissionsUpdateGroupSobjectPolicies == GroupPermissionsUpdateGroupSobjectPolicies {
-        s = append(s, "UPDATE_GROUP_SOBJECT_POLICIES")
-    }
-    if x & GroupPermissionsDeleteGroupSobjectPolicies == GroupPermissionsDeleteGroupSobjectPolicies {
-        s = append(s, "DELETE_GROUP_SOBJECT_POLICIES")
-    }
-    if x & GroupPermissionsManageGroupSobjectPolicies == GroupPermissionsManageGroupSobjectPolicies {
-        s = append(s, "MANAGE_GROUP_SOBJECT_POLICIES")
-    }
-    if x & GroupPermissionsCreateGroupCustodianPolicy == GroupPermissionsCreateGroupCustodianPolicy {
-        s = append(s, "CREATE_GROUP_CUSTODIAN_POLICY")
-    }
-    if x & GroupPermissionsUpdateGroupCustodianPolicy == GroupPermissionsUpdateGroupCustodianPolicy {
-        s = append(s, "UPDATE_GROUP_CUSTODIAN_POLICY")
-    }
-    if x & GroupPermissionsDeleteGroupCustodianPolicy == GroupPermissionsDeleteGroupCustodianPolicy {
-        s = append(s, "DELETE_GROUP_CUSTODIAN_POLICY")
-    }
-    if x & GroupPermissionsManageGroupCustodianPolicy == GroupPermissionsManageGroupCustodianPolicy {
-        s = append(s, "MANAGE_GROUP_CUSTODIAN_POLICY")
-    }
-    if x & GroupPermissionsCreateApps == GroupPermissionsCreateApps {
-        s = append(s, "CREATE_APPS")
-    }
-    if x & GroupPermissionsUpdateApps == GroupPermissionsUpdateApps {
-        s = append(s, "UPDATE_APPS")
-    }
-    if x & GroupPermissionsRetrieveAppSecrets == GroupPermissionsRetrieveAppSecrets {
-        s = append(s, "RETRIEVE_APP_SECRETS")
-    }
-    if x & GroupPermissionsDeleteApps == GroupPermissionsDeleteApps {
-        s = append(s, "DELETE_APPS")
-    }
-    if x & GroupPermissionsManageApps == GroupPermissionsManageApps {
-        s = append(s, "MANAGE_APPS")
-    }
-    if x & GroupPermissionsCreatePlugins == GroupPermissionsCreatePlugins {
-        s = append(s, "CREATE_PLUGINS")
-    }
-    if x & GroupPermissionsUpdatePlugins == GroupPermissionsUpdatePlugins {
-        s = append(s, "UPDATE_PLUGINS")
-    }
-    if x & GroupPermissionsInvokePlugins == GroupPermissionsInvokePlugins {
-        s = append(s, "INVOKE_PLUGINS")
-    }
-    if x & GroupPermissionsDeletePlugins == GroupPermissionsDeletePlugins {
-        s = append(s, "DELETE_PLUGINS")
-    }
-    if x & GroupPermissionsManagePlugins == GroupPermissionsManagePlugins {
-        s = append(s, "MANAGE_PLUGINS")
-    }
-    if x & GroupPermissionsCreateSobjects == GroupPermissionsCreateSobjects {
-        s = append(s, "CREATE_SOBJECTS")
-    }
-    if x & GroupPermissionsExportSobjects == GroupPermissionsExportSobjects {
-        s = append(s, "EXPORT_SOBJECTS")
-    }
-    if x & GroupPermissionsCopySobjects == GroupPermissionsCopySobjects {
-        s = append(s, "COPY_SOBJECTS")
-    }
-    if x & GroupPermissionsWrapSobjects == GroupPermissionsWrapSobjects {
-        s = append(s, "WRAP_SOBJECTS")
-    }
-    if x & GroupPermissionsUnwrapSobjects == GroupPermissionsUnwrapSobjects {
-        s = append(s, "UNWRAP_SOBJECTS")
-    }
-    if x & GroupPermissionsDeriveSobjects == GroupPermissionsDeriveSobjects {
-        s = append(s, "DERIVE_SOBJECTS")
-    }
-    if x & GroupPermissionsTransformSobjects == GroupPermissionsTransformSobjects {
-        s = append(s, "TRANSFORM_SOBJECTS")
-    }
-    if x & GroupPermissionsUpdateSobjectsEnabledState == GroupPermissionsUpdateSobjectsEnabledState {
-        s = append(s, "UPDATE_SOBJECTS_ENABLED_STATE")
-    }
-    if x & GroupPermissionsRotateSobjects == GroupPermissionsRotateSobjects {
-        s = append(s, "ROTATE_SOBJECTS")
-    }
-    if x & GroupPermissionsDeleteSobjects == GroupPermissionsDeleteSobjects {
-        s = append(s, "DELETE_SOBJECTS")
-    }
-    if x & GroupPermissionsDestroySobjects == GroupPermissionsDestroySobjects {
-        s = append(s, "DESTROY_SOBJECTS")
-    }
-    if x & GroupPermissionsRevokeSobjects == GroupPermissionsRevokeSobjects {
-        s = append(s, "REVOKE_SOBJECTS")
-    }
-    if x & GroupPermissionsActivateSobjects == GroupPermissionsActivateSobjects {
-        s = append(s, "ACTIVATE_SOBJECTS")
-    }
-    if x & GroupPermissionsRevertSobjects == GroupPermissionsRevertSobjects {
-        s = append(s, "REVERT_SOBJECTS")
-    }
-    if x & GroupPermissionsDeleteKeyMaterial == GroupPermissionsDeleteKeyMaterial {
-        s = append(s, "DELETE_KEY_MATERIAL")
-    }
-    if x & GroupPermissionsMoveSobjects == GroupPermissionsMoveSobjects {
-        s = append(s, "MOVE_SOBJECTS")
-    }
-    if x & GroupPermissionsUpdateKeyOps == GroupPermissionsUpdateKeyOps {
-        s = append(s, "UPDATE_KEY_OPS")
-    }
-    if x & GroupPermissionsUpdateSobjectPolicies == GroupPermissionsUpdateSobjectPolicies {
-        s = append(s, "UPDATE_SOBJECT_POLICIES")
-    }
-    if x & GroupPermissionsUpdateSobjectsProfile == GroupPermissionsUpdateSobjectsProfile {
-        s = append(s, "UPDATE_SOBJECTS_PROFILE")
-    }
-    if x & GroupPermissionsScanExternalSobjects == GroupPermissionsScanExternalSobjects {
-        s = append(s, "SCAN_EXTERNAL_SOBJECTS")
-    }
-    if x & GroupPermissionsRestoreExternalSobjects == GroupPermissionsRestoreExternalSobjects {
-        s = append(s, "RESTORE_EXTERNAL_SOBJECTS")
-    }
-    if x & GroupPermissionsWrapWorkspaceCse == GroupPermissionsWrapWorkspaceCse {
-        s = append(s, "WRAP_WORKSPACE_CSE")
-    }
-    if x & GroupPermissionsUnwrapWorkspaceCse == GroupPermissionsUnwrapWorkspaceCse {
-        s = append(s, "UNWRAP_WORKSPACE_CSE")
-    }
-    if x & GroupPermissionsWorkspaceCse == GroupPermissionsWorkspaceCse {
-        s = append(s, "WORKSPACE_CSE")
-    }
-    if x & GroupPermissionsGetGroup == GroupPermissionsGetGroup {
-        s = append(s, "GET_GROUP")
-    }
-    if x & GroupPermissionsGetSobjects == GroupPermissionsGetSobjects {
-        s = append(s, "GET_SOBJECTS")
-    }
-    if x & GroupPermissionsGetApps == GroupPermissionsGetApps {
-        s = append(s, "GET_APPS")
-    }
-    if x & GroupPermissionsGetPlugins == GroupPermissionsGetPlugins {
-        s = append(s, "GET_PLUGINS")
-    }
-    if x & GroupPermissionsGetGroupApprovalRequests == GroupPermissionsGetGroupApprovalRequests {
-        s = append(s, "GET_GROUP_APPROVAL_REQUESTS")
-    }
-    if x & GroupPermissionsGetAuditLogs == GroupPermissionsGetAuditLogs {
-        s = append(s, "GET_AUDIT_LOGS")
-    }
-    if x & GroupPermissionsManageGroupWrappingKey == GroupPermissionsManageGroupWrappingKey {
-        s = append(s, "MANAGE_GROUP_WRAPPING_KEY")
-    }
-    if x & GroupPermissionsEncapsulateSobjects == GroupPermissionsEncapsulateSobjects {
-        s = append(s, "ENCAPSULATE_SOBJECTS")
-    }
-    if x & GroupPermissionsDecapsulateSobjects == GroupPermissionsDecapsulateSobjects {
-        s = append(s, "DECAPSULATE_SOBJECTS")
-    }
-    return json.Marshal(s)
+    return json.Marshal(x.Values())
 }
 
 // UnmarshalJSON converts array of strings to GroupPermissions
 func (x *GroupPermissions) UnmarshalJSON(data []byte) error {
-    *x = 0
+    *x = NewGroupPermissions()
     var s []string
     if err := json.Unmarshal(data, &s); err != nil {
         return err
     }
     for _, v := range s {
-        switch v {
-        case "CREATE_GROUP_APPROVAL_POLICY":
-            *x = *x | GroupPermissionsCreateGroupApprovalPolicy
-        case "UPDATE_GROUP_EXTERNAL_LINKS":
-            *x = *x | GroupPermissionsUpdateGroupExternalLinks
-        case "MANAGE_GROUP_CLIENT_CONFIGS":
-            *x = *x | GroupPermissionsManageGroupClientConfigs
-        case "UPDATE_GROUP_PROFILE":
-            *x = *x | GroupPermissionsUpdateGroupProfile
-        case "DELETE_GROUP":
-            *x = *x | GroupPermissionsDeleteGroup
-        case "MAP_EXTERNAL_ROLES_FOR_APPS":
-            *x = *x | GroupPermissionsMapExternalRolesForApps
-        case "MAP_EXTERNAL_ROLES_FOR_USERS":
-            *x = *x | GroupPermissionsMapExternalRolesForUsers
-        case "MAP_EXTERNAL_ROLES":
-            *x = *x | GroupPermissionsMapExternalRoles
-        case "ADD_USERS_TO_GROUP":
-            *x = *x | GroupPermissionsAddUsersToGroup
-        case "DELETE_USERS_FROM_GROUP":
-            *x = *x | GroupPermissionsDeleteUsersFromGroup
-        case "UPDATE_USERS_GROUP_ROLE":
-            *x = *x | GroupPermissionsUpdateUsersGroupRole
-        case "MANAGE_GROUP_USERS":
-            *x = *x | GroupPermissionsManageGroupUsers
-        case "CREATE_GROUP_SOBJECT_POLICIES":
-            *x = *x | GroupPermissionsCreateGroupSobjectPolicies
-        case "UPDATE_GROUP_SOBJECT_POLICIES":
-            *x = *x | GroupPermissionsUpdateGroupSobjectPolicies
-        case "DELETE_GROUP_SOBJECT_POLICIES":
-            *x = *x | GroupPermissionsDeleteGroupSobjectPolicies
-        case "MANAGE_GROUP_SOBJECT_POLICIES":
-            *x = *x | GroupPermissionsManageGroupSobjectPolicies
-        case "CREATE_GROUP_CUSTODIAN_POLICY":
-            *x = *x | GroupPermissionsCreateGroupCustodianPolicy
-        case "UPDATE_GROUP_CUSTODIAN_POLICY":
-            *x = *x | GroupPermissionsUpdateGroupCustodianPolicy
-        case "DELETE_GROUP_CUSTODIAN_POLICY":
-            *x = *x | GroupPermissionsDeleteGroupCustodianPolicy
-        case "MANAGE_GROUP_CUSTODIAN_POLICY":
-            *x = *x | GroupPermissionsManageGroupCustodianPolicy
-        case "CREATE_APPS":
-            *x = *x | GroupPermissionsCreateApps
-        case "UPDATE_APPS":
-            *x = *x | GroupPermissionsUpdateApps
-        case "RETRIEVE_APP_SECRETS":
-            *x = *x | GroupPermissionsRetrieveAppSecrets
-        case "DELETE_APPS":
-            *x = *x | GroupPermissionsDeleteApps
-        case "MANAGE_APPS":
-            *x = *x | GroupPermissionsManageApps
-        case "CREATE_PLUGINS":
-            *x = *x | GroupPermissionsCreatePlugins
-        case "UPDATE_PLUGINS":
-            *x = *x | GroupPermissionsUpdatePlugins
-        case "INVOKE_PLUGINS":
-            *x = *x | GroupPermissionsInvokePlugins
-        case "DELETE_PLUGINS":
-            *x = *x | GroupPermissionsDeletePlugins
-        case "MANAGE_PLUGINS":
-            *x = *x | GroupPermissionsManagePlugins
-        case "CREATE_SOBJECTS":
-            *x = *x | GroupPermissionsCreateSobjects
-        case "EXPORT_SOBJECTS":
-            *x = *x | GroupPermissionsExportSobjects
-        case "COPY_SOBJECTS":
-            *x = *x | GroupPermissionsCopySobjects
-        case "WRAP_SOBJECTS":
-            *x = *x | GroupPermissionsWrapSobjects
-        case "UNWRAP_SOBJECTS":
-            *x = *x | GroupPermissionsUnwrapSobjects
-        case "DERIVE_SOBJECTS":
-            *x = *x | GroupPermissionsDeriveSobjects
-        case "TRANSFORM_SOBJECTS":
-            *x = *x | GroupPermissionsTransformSobjects
-        case "UPDATE_SOBJECTS_ENABLED_STATE":
-            *x = *x | GroupPermissionsUpdateSobjectsEnabledState
-        case "ROTATE_SOBJECTS":
-            *x = *x | GroupPermissionsRotateSobjects
-        case "DELETE_SOBJECTS":
-            *x = *x | GroupPermissionsDeleteSobjects
-        case "DESTROY_SOBJECTS":
-            *x = *x | GroupPermissionsDestroySobjects
-        case "REVOKE_SOBJECTS":
-            *x = *x | GroupPermissionsRevokeSobjects
-        case "ACTIVATE_SOBJECTS":
-            *x = *x | GroupPermissionsActivateSobjects
-        case "REVERT_SOBJECTS":
-            *x = *x | GroupPermissionsRevertSobjects
-        case "DELETE_KEY_MATERIAL":
-            *x = *x | GroupPermissionsDeleteKeyMaterial
-        case "MOVE_SOBJECTS":
-            *x = *x | GroupPermissionsMoveSobjects
-        case "UPDATE_KEY_OPS":
-            *x = *x | GroupPermissionsUpdateKeyOps
-        case "UPDATE_SOBJECT_POLICIES":
-            *x = *x | GroupPermissionsUpdateSobjectPolicies
-        case "UPDATE_SOBJECTS_PROFILE":
-            *x = *x | GroupPermissionsUpdateSobjectsProfile
-        case "SCAN_EXTERNAL_SOBJECTS":
-            *x = *x | GroupPermissionsScanExternalSobjects
-        case "RESTORE_EXTERNAL_SOBJECTS":
-            *x = *x | GroupPermissionsRestoreExternalSobjects
-        case "WRAP_WORKSPACE_CSE":
-            *x = *x | GroupPermissionsWrapWorkspaceCse
-        case "UNWRAP_WORKSPACE_CSE":
-            *x = *x | GroupPermissionsUnwrapWorkspaceCse
-        case "WORKSPACE_CSE":
-            *x = *x | GroupPermissionsWorkspaceCse
-        case "GET_GROUP":
-            *x = *x | GroupPermissionsGetGroup
-        case "GET_SOBJECTS":
-            *x = *x | GroupPermissionsGetSobjects
-        case "GET_APPS":
-            *x = *x | GroupPermissionsGetApps
-        case "GET_PLUGINS":
-            *x = *x | GroupPermissionsGetPlugins
-        case "GET_GROUP_APPROVAL_REQUESTS":
-            *x = *x | GroupPermissionsGetGroupApprovalRequests
-        case "GET_AUDIT_LOGS":
-            *x = *x | GroupPermissionsGetAuditLogs
-        case "MANAGE_GROUP_WRAPPING_KEY":
-            *x = *x | GroupPermissionsManageGroupWrappingKey
-        case "ENCAPSULATE_SOBJECTS":
-            *x = *x | GroupPermissionsEncapsulateSobjects
-        case "DECAPSULATE_SOBJECTS":
-            *x = *x | GroupPermissionsDecapsulateSobjects
-        }
+        x.Add(v)
     }
     return nil
 }
+
 
 type GroupSort struct {
     ByGroupID *GroupSortByGroupId
@@ -3257,7 +3375,7 @@ type GroupSortByGroupName struct {
 }
 func (x GroupSort) urlEncode(v map[string][]string) error {
     if x.ByGroupID != nil && x.ByGroupName != nil {
-        return errors.New("GroupSort can be either ByGroupID or ByGroupName")
+        return errors.New("GroupSort can be either ByGroupId or ByGroupName")
     }
     if x.ByGroupID != nil {
         v["sort_by"] = []string{"group_id" + string(x.ByGroupID.Order)}
@@ -3274,13 +3392,31 @@ func (x GroupSort) urlEncode(v map[string][]string) error {
     return nil
 }
 
+// A particular entry in a security object's history.
+// These entries are maintained as part of the key history
+// (aka key undo) policy feature, which allows otherwise-
+// irreversible operations on security objects to be reversible.
+//
+// Each entry represents a particular "snapshot in time" to which
+// a security object can be reverted. Such entries are only
+// recorded when key history is disabled.
 type HistoryItem struct {
+    // The ID identifying this particular entry.
     ID UUID `json:"id"`
+    // The particular state of the key, which is essentially
+    // a "snapshot" of the key's metadata at an earlier point
+    // in time.
     State HistoryItemState `json:"state"`
+    // The time when this history entry was created.
     CreatedAt Time `json:"created_at"`
+    // The time when this entry is no longer available for
+    // undo purposes.
     Expiry Time `json:"expiry"`
 }
 
+// The key metadata of the security object for a
+// given `HistoryItem`. This keeps track of properties
+// such as allowed key operations, key state, and so on.
 type HistoryItemState struct {
     ActivationDate *Time `json:"activation_date,omitempty"`
     ActivationUndoWindow *Secs `json:"activation_undo_window,omitempty"`
@@ -3324,13 +3460,109 @@ const (
     KcvMethodCmac KcvMethod = "Cmac"
 )
 
+// Information about the method by which a key was created
+type KeyCreationMethod struct {
+    // The key was generated
+    Generate *struct{}
+    // The key was created using a key agreement mechanism
+    Agree *struct{}
+    // The key was created by calling the transform API
+    Transform *struct{}
+    // The key was derived
+    Derive *struct{}
+    // The key was created by importing and unwrapping wrapped key material
+    Unwrap *struct{}
+    // The key was imported
+    Import *struct{}
+    // The key was created using key encapsulation
+    Encapsulate *struct{}
+    // The key was created using key decapsulation
+    Decapsulate *struct{}
+}
+func (x KeyCreationMethod) MarshalJSON() ([]byte, error) {
+    if err := checkEnumPointers(
+                  "KeyCreationMethod", 
+                  []bool{ x.Generate != nil,
+                  x.Agree != nil,
+                  x.Transform != nil,
+                  x.Derive != nil,
+                  x.Unwrap != nil,
+                  x.Import != nil,
+                  x.Encapsulate != nil,
+                  x.Decapsulate != nil });
+                  err != nil {
+        return nil, err
+    }
+    m := make(map[string]interface{})
+    switch {
+    case x.Generate != nil:
+        m["method"] = "Generate"
+    case x.Agree != nil:
+        m["method"] = "Agree"
+    case x.Transform != nil:
+        m["method"] = "Transform"
+    case x.Derive != nil:
+        m["method"] = "Derive"
+    case x.Unwrap != nil:
+        m["method"] = "Unwrap"
+    case x.Import != nil:
+        m["method"] = "Import"
+    case x.Encapsulate != nil:
+        m["method"] = "Encapsulate"
+    case x.Decapsulate != nil:
+        m["method"] = "Decapsulate"
+    }
+    return json.Marshal(m)
+}
+func (x *KeyCreationMethod) UnmarshalJSON(data []byte) error {
+    x.Generate = nil
+    x.Agree = nil
+    x.Transform = nil
+    x.Derive = nil
+    x.Unwrap = nil
+    x.Import = nil
+    x.Encapsulate = nil
+    x.Decapsulate = nil
+    var h struct {
+        Tag string `json:"method"`
+    }
+    if err := json.Unmarshal(data, &h); err != nil {
+        return errors.Errorf("not a valid KeyCreationMethod")
+    }
+    switch h.Tag {
+    case "Generate":
+        x.Generate = &struct{}{}
+    case "Agree":
+        x.Agree = &struct{}{}
+    case "Transform":
+        x.Transform = &struct{}{}
+    case "Derive":
+        x.Derive = &struct{}{}
+    case "Unwrap":
+        x.Unwrap = &struct{}{}
+    case "Import":
+        x.Import = &struct{}{}
+    case "Encapsulate":
+        x.Encapsulate = &struct{}{}
+    case "Decapsulate":
+        x.Decapsulate = &struct{}{}
+    default:
+         return errors.Errorf("invalid tag value: %v", h.Tag)
+    }
+    return nil
+}
+
+// Configuration for a key history (aka key undo) policy.
 type KeyHistoryPolicy struct {
+    // The period of time a history item can be undone, in seconds.
     UndoTimeWindow Secs `json:"undo_time_window"`
 }
 
 // Linked security objects.
 type KeyLinks struct {
+    // key id of the key that replaced this key (i.e., this key was rotated to the `replacement` key)
     Replacement *UUID `json:"replacement,omitempty"`
+    // key id of the key that was replaced by this key (i.e., the `replaced` key was rotated to this key)
     Replaced *UUID `json:"replaced,omitempty"`
     CopiedFrom *UUID `json:"copiedFrom,omitempty"`
     CopiedTo *[]UUID `json:"copiedTo,omitempty"`
@@ -3701,9 +3933,108 @@ const (
     LdapRoleConflictResolutionDisregardExclusiveRoles LdapRoleConflictResolution = "disregard_exclusive_roles"
 )
 
-// Credentials used by the service to authenticate itself to an LDAP server.
+// Details for an LDAP service account.
+//
+// Note: for backward compatibility, if the JSON request contains
+// string fields `dn` and `password`, DSM will interpret the value
+// as an Inline LdapServiceAccount object (even if the `$type`
+// field is missing or set to a string other than `"inline"`).
+// This means that requests like
+// ```json
+// {
+//     "dn": "...",
+//     "password": "...",
+//     "$type": "credential_ref",
+//     "credential_id": "..."
+// }
+// ```
+// would be interpreted as if the request were instead
+// ```json
+// {
+//     "dn": "...",
+//     "password": "...",
+//     "$type": "inline"
+// }
+// ```
+//
+// It is RECOMMENDED to always specify the `$type` field, and to
+// avoid mixing up fields between variants.
 type LdapServiceAccount struct {
+    // Service account details, with sensitive values inlined into the config.
+    Inline *LdapServiceAccountInline
+    // Service account details backed by an integration credential.
+    CredentialRef *LdapServiceAccountCredentialRef
+}
+// Service account details backed by an integration credential.
+type LdapServiceAccountCredentialRef struct {
+    // ID of the integration credential holding the service account details.
+    CredentialID CredentialId `json:"credential_id"`
+}
+func (x LdapServiceAccount) MarshalJSON() ([]byte, error) {
+    if err := checkEnumPointers(
+                  "LdapServiceAccount", 
+                  []bool{ x.Inline != nil,
+                  x.CredentialRef != nil });
+                  err != nil {
+        return nil, err
+    }
+    m := make(map[string]interface{})
+    switch {
+    case x.Inline != nil:
+        b, err := json.Marshal(x.Inline)
+        if err != nil {
+            return nil, err
+        }
+        if err := json.Unmarshal(b, &m); err != nil {
+            return nil, err
+        }
+        m["$type"] = "inline"
+    case x.CredentialRef != nil:
+        b, err := json.Marshal(x.CredentialRef)
+        if err != nil {
+            return nil, err
+        }
+        if err := json.Unmarshal(b, &m); err != nil {
+            return nil, err
+        }
+        m["$type"] = "credential_ref"
+    }
+    return json.Marshal(m)
+}
+func (x *LdapServiceAccount) UnmarshalJSON(data []byte) error {
+    x.Inline = nil
+    x.CredentialRef = nil
+    var h struct {
+        Tag string `json:"$type"`
+    }
+    if err := json.Unmarshal(data, &h); err != nil {
+        return errors.Errorf("not a valid LdapServiceAccount")
+    }
+    switch h.Tag {
+    case "inline":
+        var inline LdapServiceAccountInline
+        if err := json.Unmarshal(data, &inline); err != nil {
+            return err
+        }
+        x.Inline = &inline
+    case "credential_ref":
+        var credentialRef LdapServiceAccountCredentialRef
+        if err := json.Unmarshal(data, &credentialRef); err != nil {
+            return err
+        }
+        x.CredentialRef = &credentialRef
+    default:
+         return errors.Errorf("invalid tag value: %v", h.Tag)
+    }
+    return nil
+}
+
+// LDAP service account details. The user password is inlined
+// as a field on this type.
+type LdapServiceAccountInline struct {
+    // Distinguished name of the service account.
     Dn string `json:"dn"`
+    // The password for the service account.
     Password ZeroizedString `json:"password"`
 }
 
@@ -3872,6 +4203,8 @@ type LmsOptions struct {
     Heights *[]uint `json:"heights,omitempty"`
     // Amount of bytes associated to each node (the 'm' parameter)
     NodeSize *uint `json:"node_size,omitempty"`
+    // The width of the Winternitz coefficients. The default value is 8.
+    WinternitzWidth *uint `json:"winternitz_width,omitempty"`
 }
 
 type LmsOptionsPolicy struct {
@@ -3891,7 +4224,9 @@ type MetadataDurationConstraintRequired struct {
     // range expressed in terms of duration with respect to some known point
     // in time. For example, if we specify min = 30 days and max = 180 days
     // for `deactivation_date`, then the user must specify a deactivation date
-    // that is within 30 and 180 days of security object's creation time.
+    // that is within 30 and 180 days of security object's creation time. They
+    // can also choose to specify a default value for this RestrictedDuration
+    // within the min/max range, eg. default = 90 days
     AllowedValues *RestrictedDuration `json:"allowed_values,omitempty"`
 }
 func (x MetadataDurationConstraint) MarshalJSON() ([]byte, error) {
@@ -4123,11 +4458,11 @@ func (x *MgfPolicy) UnmarshalJSON(data []byte) error {
 }
 
 // ML-DSA specific options
-type MlDsaBetaOptions struct {
+type MlDsaOptions struct {
     ParamSet MlDsaParamSet `json:"param_set"`
 }
 
-type MlDsaBetaOptionsPolicy struct {
+type MlDsaOptionsPolicy struct {
 }
 
 // ML-DSA parameter sets
@@ -4141,11 +4476,11 @@ const (
 )
 
 // ML-KEM specific options
-type MlKemBetaOptions struct {
+type MlKemOptions struct {
     ParamSet *MlKemParamSet `json:"param_set,omitempty"`
 }
 
-type MlKemBetaOptionsPolicy struct {
+type MlKemOptionsPolicy struct {
 }
 
 // ML-KEM parameter sets
@@ -4254,6 +4589,7 @@ const (
     ObjectTypeKcdsa ObjectType = "KCDSA"
     ObjectTypeEcKcdsa ObjectType = "ECKCDSA"
     ObjectTypeBip32 ObjectType = "BIP32"
+    ObjectTypeSlip10 ObjectType = "SLIP10"
     ObjectTypeBls ObjectType = "BLS"
     ObjectTypeOpaque ObjectType = "OPAQUE"
     ObjectTypeHmac ObjectType = "HMAC"
@@ -4262,7 +4598,11 @@ const (
     ObjectTypeSecret ObjectType = "SECRET"
     ObjectTypeLms ObjectType = "LMS"
     ObjectTypeXmss ObjectType = "XMSS"
+    ObjectTypeMlDsa ObjectType = "MLDSA"
+    // This object type is deprecated. Use `MlDsa` instead.
     ObjectTypeMlDsaBeta ObjectType = "MLDSABETA"
+    ObjectTypeMlKem ObjectType = "MLKEM"
+    // This object type is deprecated. Use `MlKem` instead.
     ObjectTypeMlKemBeta ObjectType = "MLKEMBETA"
     ObjectTypeCertificate ObjectType = "CERTIFICATE"
     ObjectTypePbe ObjectType = "PBE"
@@ -4321,6 +4661,19 @@ func (x *ObjectTypeFilter) UnmarshalJSON(data []byte) error {
          return errors.Errorf("invalid tag value: %v", h.Tag)
     }
     return nil
+}
+
+// Any key specific metadata that isn't already described
+// by an existing security object field.
+type OciVaultInfo struct {
+    // Describes the OCI vault protection mode, usually
+    // meaning HSM or SOFTWARE.
+    ProtectionMode string `json:"protection_mode"`
+    // The scheduled deletion_date of the OCI key version
+    DeletionDate *Time `json:"deletion_date,omitempty"`
+    // The name in the OCI Vault (and may differ from
+    // what the DSM virtual key shows).
+    DisplayName string `json:"display_name"`
 }
 
 type OpaqueOptionsPolicy struct {
@@ -4698,6 +5051,13 @@ const (
 type RestrictedDuration struct {
     Min *TimeSpan `json:"min,omitempty"`
     Max *TimeSpan `json:"max,omitempty"`
+    // If set, keys created without a `deactivation_date`
+    // specified will be assigned this value.
+    //
+    // Note: if the `min` or `max` are set, this default
+    // cannot be less than or greater than the 'min' or 'max'
+    // range duration respectively.
+    Default *TimeSpan `json:"default,omitempty"`
 }
 
 // Reason for revoking a key.
@@ -5062,6 +5422,15 @@ type SeedOptionsPolicy struct {
     RandomIv *bool `json:"random_iv,omitempty"`
 }
 
+// Server execution mode.
+type ServerMode string
+
+// List of supported ServerMode values
+const (
+    ServerModeSoftware ServerMode = "Software"
+    ServerModeSgx ServerMode = "Sgx"
+)
+
 // Signing keys used to validate JSON Web Signature objects including signed
 // JSON Web Tokens.
 type SigningKeys struct {
@@ -5136,6 +5505,16 @@ func (x *SigningKeys) UnmarshalJSON(data []byte) error {
     return nil
 }
 
+type Slip10Options struct {
+    // The Slip10 path, starting from master. Master key is [].
+    //
+    // Ex: m/42/42'/0 -> [42, 2**31 + 42, 0]
+    DerivationPath []uint32 `json:"derivation_path"`
+}
+
+type Slip10OptionsPolicy struct {
+}
+
 type Sobject struct {
     // UUID of the account which the security object belongs to.
     AcctID UUID `json:"acct_id"`
@@ -5143,6 +5522,8 @@ type Sobject struct {
     ActivationDate *Time `json:"activation_date,omitempty"`
     // AES specific options.
     Aes *AesOptions `json:"aes,omitempty"`
+    // Whether this security object can be used/referenced by a credential object.
+    AllowCredentialUse *bool `json:"allow_credential_use,omitempty"`
     // Whether the sign operation response contains hash or data as output.
     AllowSignHash *bool `json:"allow_sign_hash,omitempty"`
     // ARIA specific options.
@@ -5187,7 +5568,7 @@ type Sobject struct {
     Enabled bool `json:"enabled"`
     // This export policy determines how exportable keys (ones with the `EXPORT` permission) may be exported.
     ExportPolicy *SobjectExportPolicy `json:"export_policy,omitempty"`
-    // Information specific to an external KMS. Currently, it only has AWS related information.
+    // Information to describe a specific external KMS object.
     External *ExternalSobjectInfo `json:"external,omitempty"`
     // FPE specific options.
     Fpe *FpeOptions `json:"fpe,omitempty"`
@@ -5203,6 +5584,8 @@ type Sobject struct {
     Kcv *string `json:"kcv,omitempty"`
     // Cmac Key Checksum Value of the security object.
     KcvCmac *string `json:"kcv_cmac,omitempty"`
+    // Describes how the key was created. This information is available for newly created DSM keys starting with version 5.1
+    KeyCreationMethod *KeyCreationMethod `json:"key_creation_method,omitempty"`
     // Operations allowed to be performed by a given key.
     KeyOps KeyOperations `json:"key_ops"`
     // Key size of the security object in bits.
@@ -5213,10 +5596,10 @@ type Sobject struct {
     Links *KeyLinks `json:"links,omitempty"`
     // LMS specific options.
     Lms *LmsOptions `json:"lms,omitempty"`
-    // ML-DSA specific options (beta).
-    MldsaBeta *MlDsaBetaOptions `json:"mldsa_beta,omitempty"`
-    // ML-KEM specific options (beta).
-    MlkemBeta *MlKemBetaOptions `json:"mlkem_beta,omitempty"`
+    // ML-DSA specific options.
+    Mldsa *MlDsaOptions `json:"mldsa,omitempty"`
+    // ML-KEM specific options.
+    Mlkem *MlKemOptions `json:"mlkem,omitempty"`
     // Name of the security object.
     Name *string `json:"name,omitempty"`
     // Whether the security object was exportable at some point in its lifetime.
@@ -5225,7 +5608,11 @@ type Sobject struct {
     ObjType ObjectType `json:"obj_type"`
     // The origin of the security object.
     Origin ObjectOrigin `json:"origin"`
+    // Key operations with which the key was created. This information is available for newly created DSM keys starting with version 5.1
+    OriginalKeyOps *KeyOperations `json:"original_key_ops,omitempty"`
     // Public key material of the security object, if it exists.
+    // 
+    // For virtual keys, this field may not be available if the key is not backed by DSM.
     PubKey *ZeroizedBlob `json:"pub_key,omitempty"`
     // Whether the security object only consists of public material.
     PublicOnly bool `json:"public_only"`
@@ -5244,6 +5631,8 @@ type Sobject struct {
     ScheduledRotation *Time `json:"scheduled_rotation,omitempty"`
     // Seed options.
     Seed *SeedOptions `json:"seed,omitempty"`
+    // Slip10 specific options.
+    Slip10 *Slip10Options `json:"slip10,omitempty"`
     // Security object operational state.
     State *SobjectState `json:"state,omitempty"`
     // Transient key material.
@@ -5700,6 +6089,22 @@ const (
     // UV isn't "preferred" by RP.
     UserVerificationRequirementDiscouraged UserVerificationRequirement = "discouraged"
 )
+
+// Information about the service version.
+type VersionResponse struct {
+    // Server version. This is encoded as "major.minor.build".
+    Version string `json:"version"`
+    // The API version implemented by the server.
+    APIVersion string `json:"api_version"`
+    ServerMode ServerMode `json:"server_mode"`
+    // FIPS level at which the service in running. If this field is absent, then the service is
+    // not running in FIPS compliant mode.
+    FipsLevel *uint8 `json:"fips_level,omitempty"`
+    // An opaque digest of all current plugins.
+    //
+    // Only present when the server is running in FIPS mode.
+    PluginsDigest *Blob `json:"plugins_digest,omitempty"`
+}
 
 // Information specific to a virtual key. Currently, this is only relevant
 // for virtual keys backed by DSM.

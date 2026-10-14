@@ -34,6 +34,18 @@ type Account struct {
     InitialPurchaseAt *Time `json:"initial_purchase_at,omitempty"`
     // Enable the customer to configure when to receive alerts through SIEM tools ahead of key deactivation time.
     KeyExpiryAlertConfig *KeyExpiryAlertConfig `json:"key_expiry_alert_config,omitempty"`
+    // Account-wide key history policy (aka key undo policy).
+    // 
+    // Key history policies allow certain key management operations, normally irreversible,
+    // to be undoable within a configurable period of time. For more information about this
+    // feature, please see <https://support.fortanix.com/docs/users-guide-key-undo-policy>.
+    // 
+    // An account-wide key undo policy applies to all DSM-local or FIPS replication groups,
+    // unless the group in question already has a key undo policy of its own, in which case,
+    // the group-level policy takes precedence.
+    // 
+    // To remove an existing policy when updating the account, specify the string "remove"
+    // in the PATCH request.
     KeyHistoryPolicy *KeyHistoryPolicy `json:"key_history_policy,omitempty"`
     KeyMetadataPolicy *KeyMetadataPolicy `json:"key_metadata_policy,omitempty"`
     LogBadRequests *bool `json:"log_bad_requests,omitempty"`
@@ -83,6 +95,11 @@ type Account struct {
     Purpose AccountPurpose `json:"purpose"`
     Subscription Subscription `json:"subscription"`
     Totals *ObjectCounts `json:"totals,omitempty"`
+    // The date when an account's trial expires.
+    // 
+    // It is recommended to rely on this field instead of looking at the account's subscription to determine the expiry date, since not all trial subscriptions have the expiry date explicitly indicated.
+    // 
+    // This field is read-only, and is not shown for non-trial accounts.
     TrialExpiresAt *Time `json:"trial_expires_at,omitempty"`
     WorkspaceCseConfig *WorkspaceCseConfig `json:"workspace_cse_config,omitempty"`
 }
@@ -453,6 +470,9 @@ type AccountReplicationScanSettings struct {
 }
 
 type AccountRequest struct {
+    // LDAP integrations to add when creating or updating an account.
+    // 
+    // In order for this field to take effect during creation, it must be specified alongside the `auth_config` field.
     AddLdap *[]AuthConfigLdap `json:"add_ldap,omitempty"`
     AddLoggingConfigs *[]LoggingConfigRequest `json:"add_logging_configs,omitempty"`
     ApprovalPolicy *AccountApprovalPolicy `json:"approval_policy,omitempty"`
@@ -465,18 +485,32 @@ type AccountRequest struct {
     CustomLogo *Blob `json:"custom_logo,omitempty"`
     CustomMetadata *map[string]string `json:"custom_metadata,omitempty"`
     CustomMetadataAttributes *map[string]CustomAttributeSearchMetadata `json:"custom_metadata_attributes,omitempty"`
+    // LDAP integrations to remove when updating an account. This field is a list of LDAP integration IDs. (DSM assigns each LDAP integration a UUID; refer to the `auth_config.ldap` field.)
     DelLdap *[]UUID `json:"del_ldap,omitempty"`
     DelLoggingConfigs *[]UUID `json:"del_logging_configs,omitempty"`
     Description *string `json:"description,omitempty"`
     Enabled *bool `json:"enabled,omitempty"`
     // Enable the customer to configure when to receive alerts through SIEM tools ahead of key deactivation time.
     KeyExpiryAlertConfig *KeyExpiryAlertConfigRequest `json:"key_expiry_alert_config,omitempty"`
+    // Account-wide key history policy (aka key undo policy).
+    // 
+    // Key history policies allow certain key management operations, normally irreversible,
+    // to be undoable within a configurable period of time. For more information about this
+    // feature, please see <https://support.fortanix.com/docs/users-guide-key-undo-policy>.
+    // 
+    // An account-wide key undo policy applies to all DSM-local or FIPS replication groups,
+    // unless the group in question already has a key undo policy of its own, in which case,
+    // the group-level policy takes precedence.
+    // 
+    // To remove an existing policy when updating the account, specify the string "remove"
+    // in the PATCH request.
     KeyHistoryPolicy *Removable[KeyHistoryPolicy] `json:"key_history_policy,omitempty"`
     KeyMetadataPolicy *Removable[KeyMetadataPolicy] `json:"key_metadata_policy,omitempty"`
     LogBadRequests *bool `json:"log_bad_requests,omitempty"`
     LogRetentionDays *uint64 `json:"log_retention_days,omitempty"`
     // Enable the user to opt out from the current behaviour of key being marked as disabled at time of deactivation.
     MarkKeyDisableWhenDeactivated *bool `json:"mark_key_disable_when_deactivated,omitempty"`
+    // LDAP integrations to modify when updating an account. This field is a object, where the keys are LDAP integration IDs, and the values are LDAP auth configs. (DSM assigns each LDAP integration a UUID; check the `auth_config.ldap` field to see them.)
     ModLdap *map[UUID]AuthConfigLdap `json:"mod_ldap,omitempty"`
     ModLoggingConfigs *map[UUID]LoggingConfigRequest `json:"mod_logging_configs,omitempty"`
     Name *string `json:"name,omitempty"`
@@ -729,6 +763,9 @@ type AppCreditsUsage struct {
     SecretsManagement uint32 `json:"secrets_management"`
     AwsCloudAccounts uint32 `json:"aws_cloud_accounts"`
     AzureCloudAccounts uint32 `json:"azure_cloud_accounts"`
+    GcpCloudAccounts uint32 `json:"gcp_cloud_accounts"`
+    GoogleEkmProjects uint32 `json:"google_ekm_projects"`
+    AwsXksInstances uint32 `json:"aws_xks_instances"`
 }
 
 // Settings that apply to quorum approval requests.
@@ -827,13 +864,36 @@ type ApprovalRequestSettingsRequest struct {
     CheckAccessForSensitiveOperationResults *bool `json:"check_access_for_sensitive_operation_results,omitempty"`
 }
 
-// Account authentication settings.
+// Account authentication settings for users.
 type AuthConfig struct {
+    // Settings for password authentication.
+    //
+    // Omitting this field, or setting it to null, will DISABLE
+    // password authentication for users.
     Password *AuthConfigPassword `json:"password,omitempty"`
+    // Settings for SAML authentication.
+    //
+    // Omitting this field, or setting it to null, will DISABLE
+    // SAML authentication for users.
     Saml *string `json:"saml,omitempty"`
+    // Settings for OAuth authentication.
+    //
+    // Omitting this field, or setting it to null, will DISABLE
+    // OAuth authentication for users.
     Oauth *AuthConfigOauth `json:"oauth,omitempty"`
+    // Settings for LDAP authentication. This field is only used
+    // in responses; in requests, please utilize the `add_ldap`,
+    // `mod_ldap`, and `del_ldap` fields in an `AccountRequest`.
     Ldap *map[UUID]AuthConfigLdap `json:"ldap,omitempty"`
+    // Settings for JWT authentication. This field should only
+    // be used for child accounts (relevant to customers with
+    // reseller arrangements with Fortanix), and should be left
+    // unspecified by anyone else.
     SignedJwt *AuthConfigSignedJwt `json:"signed_jwt,omitempty"`
+    // Settings for VMware Cloud Director authentication.
+    //
+    // Omitting this field, or setting it to null, will DISABLE
+    // VCD authentication for users.
     Vcd *AuthConfigVcd `json:"vcd,omitempty"`
 }
 
@@ -854,7 +914,13 @@ type AuthConfigOauth struct {
 
 // Password authentication settings.
 type AuthConfigPassword struct {
+    // Require two-factor authentication for password logins.
     Require2fa bool `json:"require_2fa"`
+    // Limit password login to account administators only.
+    //
+    // Note: password login will be always allowed for all users
+    // if there are no alternative authentication methods for the
+    // account.
     AdministratorsOnly bool `json:"administrators_only"`
 }
 
@@ -882,6 +948,34 @@ type AzureLogAnalyticsLoggingConfigRequest struct {
     Enabled *bool `json:"enabled,omitempty"`
     WorkspaceID *UUID `json:"workspace_id,omitempty"`
     SharedKey *ZeroizedBlob `json:"shared_key,omitempty"`
+}
+
+// Azure Monitor Log Ingestion API logging configuration (DCR-based).
+// Auth credentials are managed as an IntegrationCredential object via `CredentialId`.
+//
+// Note: This replaces the legacy `Azure Log Analytics` HTTP Data Collector API
+// which Microsoft plans to deprecate on September 14th, 2026.
+type AzureLogIngestionLoggingConfig struct {
+    Enabled bool `json:"enabled"`
+    // The DCR logs ingestion endpoint URL (e.g. https://<dce>.ingest.monitor.azure.com).
+    // For public internet, this is the DCR's built-in logs ingestion URL.
+    // For private link, this is the DCE URL.
+    LogsIngestionEndpointURL string `json:"logs_ingestion_endpoint_url"`
+    // The immutable ID of the Data Collection Rule (DCR).
+    DcrImmutableID string `json:"dcr_immutable_id"`
+    // The stream name defined in the DCR (e.g. "Custom-DSMAuditLog").
+    StreamName string `json:"stream_name"`
+    // Reference to an `IntegrationCredential` with `AzureCredentialAuth` details.
+    CredentialID CredentialId `json:"credential_id"`
+}
+
+// Azure Monitor Log Ingestion API configuration (DCR-based) request.
+type AzureLogIngestionLoggingConfigRequest struct {
+    Enabled *bool `json:"enabled,omitempty"`
+    LogsIngestionEndpointURL *string `json:"logs_ingestion_endpoint_url,omitempty"`
+    DcrImmutableID *string `json:"dcr_immutable_id,omitempty"`
+    StreamName *string `json:"stream_name,omitempty"`
+    CredentialID *CredentialId `json:"credential_id,omitempty"`
 }
 
 // Details about a certificate-based admin app credential used for account replication.
@@ -1011,7 +1105,15 @@ func (x GetAccountParams) urlEncode(v map[string][]string) error {
     return nil
 }
 
+// The response from the account stats API (`/sys/v1/accounts/:acct_id/usage_report`).
 type GetUsageResponse struct {
+    // The count of all operations performed in the account. This value includes **both**
+    // key management (e.g., CRUD ops) and cryptographic operations (e.g., encrypt/decrypt).
+    //
+    // To illustrate, here are a few examples:
+    // - If you have a key which was copied to another group and then do a key rotation (with the key-links also being updated), the `num_operations` count will increase by two.
+    // - If you have a key and do an encrypt operation this will increase the `num_operations` and `encryption_operations` each by one.
+    // - If you delete a key, this will increase only `num_operations` by one.
     NumOperations uint64 `json:"num_operations"`
     EncryptionOperations *uint64 `json:"encryption_operations,omitempty"`
     DecryptionOperations *uint64 `json:"decryption_operations,omitempty"`
@@ -1132,6 +1234,7 @@ type LoggingConfig struct {
     Stackdriver *StackdriverLoggingConfig
     Syslog *SyslogLoggingConfig
     AzureLogAnalytics *AzureLogAnalyticsLoggingConfig
+    AzureLogIngestion *AzureLogIngestionLoggingConfig
 }
 func (x LoggingConfig) MarshalJSON() ([]byte, error) {
     if err := checkEnumPointers(
@@ -1139,7 +1242,8 @@ func (x LoggingConfig) MarshalJSON() ([]byte, error) {
                   []bool{ x.Splunk != nil,
                   x.Stackdriver != nil,
                   x.Syslog != nil,
-                  x.AzureLogAnalytics != nil });
+                  x.AzureLogAnalytics != nil,
+                  x.AzureLogIngestion != nil });
                   err != nil {
         return nil, err
     }
@@ -1148,11 +1252,13 @@ func (x LoggingConfig) MarshalJSON() ([]byte, error) {
         Stackdriver *StackdriverLoggingConfig `json:"stackdriver,omitempty"`
         Syslog *SyslogLoggingConfig `json:"syslog,omitempty"`
         AzureLogAnalytics *AzureLogAnalyticsLoggingConfig `json:"azure_log_analytics,omitempty"`
+        AzureLogIngestion *AzureLogIngestionLoggingConfig `json:"azure_log_ingestion,omitempty"`
     }
     obj.Splunk = x.Splunk
     obj.Stackdriver = x.Stackdriver
     obj.Syslog = x.Syslog
     obj.AzureLogAnalytics = x.AzureLogAnalytics
+    obj.AzureLogIngestion = x.AzureLogIngestion
     return json.Marshal(obj)
 }
 func (x *LoggingConfig) UnmarshalJSON(data []byte) error {
@@ -1160,11 +1266,13 @@ func (x *LoggingConfig) UnmarshalJSON(data []byte) error {
     x.Stackdriver = nil
     x.Syslog = nil
     x.AzureLogAnalytics = nil
+    x.AzureLogIngestion = nil
     var obj struct {
         Splunk *SplunkLoggingConfig `json:"splunk,omitempty"`
         Stackdriver *StackdriverLoggingConfig `json:"stackdriver,omitempty"`
         Syslog *SyslogLoggingConfig `json:"syslog,omitempty"`
         AzureLogAnalytics *AzureLogAnalyticsLoggingConfig `json:"azure_log_analytics,omitempty"`
+        AzureLogIngestion *AzureLogIngestionLoggingConfig `json:"azure_log_ingestion,omitempty"`
     }
     if err := json.Unmarshal(data, &obj); err != nil {
         return err
@@ -1173,6 +1281,7 @@ func (x *LoggingConfig) UnmarshalJSON(data []byte) error {
     x.Stackdriver = obj.Stackdriver
     x.Syslog = obj.Syslog
     x.AzureLogAnalytics = obj.AzureLogAnalytics
+    x.AzureLogIngestion = obj.AzureLogIngestion
     return nil
 }
 
@@ -1181,6 +1290,7 @@ type LoggingConfigRequest struct {
     Stackdriver *StackdriverLoggingConfigRequest
     Syslog *SyslogLoggingConfigRequest
     AzureLogAnalytics *AzureLogAnalyticsLoggingConfigRequest
+    AzureLogIngestion *AzureLogIngestionLoggingConfigRequest
 }
 func (x LoggingConfigRequest) MarshalJSON() ([]byte, error) {
     if err := checkEnumPointers(
@@ -1188,7 +1298,8 @@ func (x LoggingConfigRequest) MarshalJSON() ([]byte, error) {
                   []bool{ x.Splunk != nil,
                   x.Stackdriver != nil,
                   x.Syslog != nil,
-                  x.AzureLogAnalytics != nil });
+                  x.AzureLogAnalytics != nil,
+                  x.AzureLogIngestion != nil });
                   err != nil {
         return nil, err
     }
@@ -1197,11 +1308,13 @@ func (x LoggingConfigRequest) MarshalJSON() ([]byte, error) {
         Stackdriver *StackdriverLoggingConfigRequest `json:"stackdriver,omitempty"`
         Syslog *SyslogLoggingConfigRequest `json:"syslog,omitempty"`
         AzureLogAnalytics *AzureLogAnalyticsLoggingConfigRequest `json:"azure_log_analytics,omitempty"`
+        AzureLogIngestion *AzureLogIngestionLoggingConfigRequest `json:"azure_log_ingestion,omitempty"`
     }
     obj.Splunk = x.Splunk
     obj.Stackdriver = x.Stackdriver
     obj.Syslog = x.Syslog
     obj.AzureLogAnalytics = x.AzureLogAnalytics
+    obj.AzureLogIngestion = x.AzureLogIngestion
     return json.Marshal(obj)
 }
 func (x *LoggingConfigRequest) UnmarshalJSON(data []byte) error {
@@ -1209,11 +1322,13 @@ func (x *LoggingConfigRequest) UnmarshalJSON(data []byte) error {
     x.Stackdriver = nil
     x.Syslog = nil
     x.AzureLogAnalytics = nil
+    x.AzureLogIngestion = nil
     var obj struct {
         Splunk *SplunkLoggingConfigRequest `json:"splunk,omitempty"`
         Stackdriver *StackdriverLoggingConfigRequest `json:"stackdriver,omitempty"`
         Syslog *SyslogLoggingConfigRequest `json:"syslog,omitempty"`
         AzureLogAnalytics *AzureLogAnalyticsLoggingConfigRequest `json:"azure_log_analytics,omitempty"`
+        AzureLogIngestion *AzureLogIngestionLoggingConfigRequest `json:"azure_log_ingestion,omitempty"`
     }
     if err := json.Unmarshal(data, &obj); err != nil {
         return err
@@ -1222,6 +1337,7 @@ func (x *LoggingConfigRequest) UnmarshalJSON(data []byte) error {
     x.Stackdriver = obj.Stackdriver
     x.Syslog = obj.Syslog
     x.AzureLogAnalytics = obj.AzureLogAnalytics
+    x.AzureLogIngestion = obj.AzureLogIngestion
     return nil
 }
 
@@ -1261,6 +1377,11 @@ type ObjectCounts struct {
     // These rules are subject to change in the future.
     SobjectsAccuracy CountAccuracy `json:"sobjects_accuracy"`
     ChildAccounts uint64 `json:"child_accounts"`
+}
+
+// OnPrem subscription type
+type OnPremSubscriptionType struct {
+    CountTransientOps *bool `json:"count_transient_ops,omitempty"`
 }
 
 // A summary of the latest scans for a replication account.
@@ -1377,6 +1498,11 @@ type SplunkLoggingConfig struct {
     Index string `json:"index"`
     Token *ZeroizedString `json:"token,omitempty"`
     TLS TlsConfig `json:"tls"`
+    // Enable sending the cluster FQDN as the hostname in log entries.
+    //
+    // Defaults to `true` for newly created configs, but remains `false` when the
+    // field is omitted to preserve backward compatibility.
+    UseFqdnHostname *bool `json:"use_fqdn_hostname,omitempty"`
 }
 
 type SplunkLoggingConfigRequest struct {
@@ -1388,6 +1514,8 @@ type SplunkLoggingConfigRequest struct {
     // The Splunk authentication token.
     Token *ZeroizedString `json:"token,omitempty"`
     TLS *TlsConfig `json:"tls,omitempty"`
+    // Enable sending the cluster FQDN as the hostname in log entries.
+    UseFqdnHostname *bool `json:"use_fqdn_hostname,omitempty"`
 }
 
 // Stackdriver logging configuration.
@@ -1470,6 +1598,7 @@ const (
     SubscriptionFeaturesAzurebyok
     SubscriptionFeaturesGcpbyok
     SubscriptionFeaturesGcpekmcontrolplane
+    SubscriptionFeaturesOcibyok
 )
 
 // MarshalJSON converts SubscriptionFeatures to an array of strings
@@ -1492,6 +1621,9 @@ func (x SubscriptionFeatures) MarshalJSON() ([]byte, error) {
     }
     if x & SubscriptionFeaturesGcpekmcontrolplane == SubscriptionFeaturesGcpekmcontrolplane {
         s = append(s, "GCPEKMCONTROLPLANE")
+    }
+    if x & SubscriptionFeaturesOcibyok == SubscriptionFeaturesOcibyok {
+        s = append(s, "OCIBYOK")
     }
     return json.Marshal(s)
 }
@@ -1517,6 +1649,8 @@ func (x *SubscriptionFeatures) UnmarshalJSON(data []byte) error {
             *x = *x | SubscriptionFeaturesGcpbyok
         case "GCPEKMCONTROLPLANE":
             *x = *x | SubscriptionFeaturesGcpekmcontrolplane
+        case "OCIBYOK":
+            *x = *x | SubscriptionFeaturesOcibyok
         }
     }
     return nil
@@ -1524,15 +1658,36 @@ func (x *SubscriptionFeatures) UnmarshalJSON(data []byte) error {
 
 // Type of subscription.
 type SubscriptionType struct {
+    // A trial subscription on DSM SaaS.
     Trial *SubscriptionTypeTrial
+    // A "standard" DSM SaaS subscription. This is a legacy subscription
+    // type, which is more or less superseded by Custom subscriptions.
     Standard *struct{}
+    // A "enterprise" DSM SaaS subscription. This is a legacy subscription
+    // type, which is more or less superseded by Custom subscriptions.
     Enterprise *struct{}
+    // A custom subscription on DSM SaaS.
     Custom **CustomSubscriptionType
+    // A freemium subscription on DSM SaaS.
     Freemium **FreemiumSubscriptionType
-    OnPrem *struct{}
+    // A specicial variant to account for on-prem deployments; most
+    // subscription-based restrictions are not enforced in the backend.
+    //
+    // Note: Sysadmin accounts on both SaaS and on-prem deployments utilize
+    // this variant.
+    OnPrem **OnPremSubscriptionType
+    // A reseller subscription. This is only used by customers who have
+    // reseller arrangements with Fortanix.
     Reseller **ResellerSubscriptionType
 }
+// A trial subscription on DSM SaaS.
 type SubscriptionTypeTrial struct {
+    // The time that this subscription expires. If not set, the
+    // subscription will expire 30 days after the account's creation
+    // date.
+    //
+    // The account's `trial_expires_at` field can be used to determine
+    // the effective expiry date of a trial account.
     ExpiresAt *Time `json:"expires_at,omitempty"`
 }
 func (x SubscriptionType) MarshalJSON() ([]byte, error) {
@@ -1554,7 +1709,7 @@ func (x SubscriptionType) MarshalJSON() ([]byte, error) {
         Enterprise *struct{} `json:"enterprise,omitempty"`
         Custom **CustomSubscriptionType `json:"custom,omitempty"`
         Freemium **FreemiumSubscriptionType `json:"freemium,omitempty"`
-        OnPrem *struct{} `json:"on_prem,omitempty"`
+        OnPrem **OnPremSubscriptionType `json:"on_prem,omitempty"`
         Reseller **ResellerSubscriptionType `json:"reseller,omitempty"`
     }
     obj.Trial = x.Trial
@@ -1580,7 +1735,7 @@ func (x *SubscriptionType) UnmarshalJSON(data []byte) error {
         Enterprise *struct{} `json:"enterprise,omitempty"`
         Custom **CustomSubscriptionType `json:"custom,omitempty"`
         Freemium **FreemiumSubscriptionType `json:"freemium,omitempty"`
-        OnPrem *struct{} `json:"on_prem,omitempty"`
+        OnPrem **OnPremSubscriptionType `json:"on_prem,omitempty"`
         Reseller **ResellerSubscriptionType `json:"reseller,omitempty"`
     }
     if err := json.Unmarshal(data, &obj); err != nil {
@@ -1617,6 +1772,11 @@ type SyslogLoggingConfig struct {
     Port uint16 `json:"port"`
     TLS TlsConfig `json:"tls"`
     Facility SyslogFacility `json:"facility"`
+    // Enable sending the cluster FQDN as the hostname in log entries.
+    //
+    // Defaults to `true` for newly created configs, but remains `false` when the
+    // field is omitted to preserve backward compatibility.
+    UseFqdnHostname *bool `json:"use_fqdn_hostname,omitempty"`
 }
 
 type SyslogLoggingConfigRequest struct {
@@ -1625,6 +1785,8 @@ type SyslogLoggingConfigRequest struct {
     Port *uint16 `json:"port,omitempty"`
     TLS *TlsConfig `json:"tls,omitempty"`
     Facility *SyslogFacility `json:"facility,omitempty"`
+    // Enable sending the cluster FQDN as the hostname in log entries.
+    UseFqdnHostname *bool `json:"use_fqdn_hostname,omitempty"`
 }
 
 // A request to update a certificate-based replication credential.

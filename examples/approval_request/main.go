@@ -26,7 +26,7 @@ func main() {
 	}
 	signReq := sdkms.SignRequest{
 		Data:    sdkms.Some([]byte("hello, world")),
-		HashAlg: sdkms.DigestAlgorithmSha256,
+		HashAlg: sdkms.Some(sdkms.DigestAlgorithmSha256),
 		Key:     sdkms.SobjectByName(keyName),
 		Mode:    sdkms.SignatureModeRSA(sdkms.RsaSignaturePaddingPKCS1V15()),
 	}

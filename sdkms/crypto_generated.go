@@ -235,12 +235,17 @@ type DeriveKeyMechanism struct {
     EncryptData *EncryptRequest
     Bip32MasterKey *DeriveKeyMechanismBip32MasterKey
     Bip32HardenedChild *DeriveKeyMechanismBip32HardenedChild
+    Slip10MasterKey *struct{}
+    Slip10HardenedChild *DeriveKeyMechanismSlip10HardenedChild
     Hkdf *DeriveKeyMechanismHkdf
 }
 type DeriveKeyMechanismBip32MasterKey struct {
     Network Bip32Network `json:"network"`
 }
 type DeriveKeyMechanismBip32HardenedChild struct {
+    Index uint32 `json:"index"`
+}
+type DeriveKeyMechanismSlip10HardenedChild struct {
     Index uint32 `json:"index"`
 }
 type DeriveKeyMechanismHkdf struct {
@@ -254,6 +259,8 @@ func (x DeriveKeyMechanism) MarshalJSON() ([]byte, error) {
                   []bool{ x.EncryptData != nil,
                   x.Bip32MasterKey != nil,
                   x.Bip32HardenedChild != nil,
+                  x.Slip10MasterKey != nil,
+                  x.Slip10HardenedChild != nil,
                   x.Hkdf != nil });
                   err != nil {
         return nil, err
@@ -262,11 +269,15 @@ func (x DeriveKeyMechanism) MarshalJSON() ([]byte, error) {
         EncryptData *EncryptRequest `json:"encrypt_data,omitempty"`
         Bip32MasterKey *DeriveKeyMechanismBip32MasterKey `json:"bip32_master_key,omitempty"`
         Bip32HardenedChild *DeriveKeyMechanismBip32HardenedChild `json:"bip32_hardened_child,omitempty"`
+        Slip10MasterKey *struct{} `json:"slip10_master_key,omitempty"`
+        Slip10HardenedChild *DeriveKeyMechanismSlip10HardenedChild `json:"slip10_hardened_child,omitempty"`
         Hkdf *DeriveKeyMechanismHkdf `json:"hkdf,omitempty"`
     }
     obj.EncryptData = x.EncryptData
     obj.Bip32MasterKey = x.Bip32MasterKey
     obj.Bip32HardenedChild = x.Bip32HardenedChild
+    obj.Slip10MasterKey = x.Slip10MasterKey
+    obj.Slip10HardenedChild = x.Slip10HardenedChild
     obj.Hkdf = x.Hkdf
     return json.Marshal(obj)
 }
@@ -274,11 +285,15 @@ func (x *DeriveKeyMechanism) UnmarshalJSON(data []byte) error {
     x.EncryptData = nil
     x.Bip32MasterKey = nil
     x.Bip32HardenedChild = nil
+    x.Slip10MasterKey = nil
+    x.Slip10HardenedChild = nil
     x.Hkdf = nil
     var obj struct {
         EncryptData *EncryptRequest `json:"encrypt_data,omitempty"`
         Bip32MasterKey *DeriveKeyMechanismBip32MasterKey `json:"bip32_master_key,omitempty"`
         Bip32HardenedChild *DeriveKeyMechanismBip32HardenedChild `json:"bip32_hardened_child,omitempty"`
+        Slip10MasterKey *struct{} `json:"slip10_master_key,omitempty"`
+        Slip10HardenedChild *DeriveKeyMechanismSlip10HardenedChild `json:"slip10_hardened_child,omitempty"`
         Hkdf *DeriveKeyMechanismHkdf `json:"hkdf,omitempty"`
     }
     if err := json.Unmarshal(data, &obj); err != nil {
@@ -287,6 +302,8 @@ func (x *DeriveKeyMechanism) UnmarshalJSON(data []byte) error {
     x.EncryptData = obj.EncryptData
     x.Bip32MasterKey = obj.Bip32MasterKey
     x.Bip32HardenedChild = obj.Bip32HardenedChild
+    x.Slip10MasterKey = obj.Slip10MasterKey
+    x.Slip10HardenedChild = obj.Slip10HardenedChild
     x.Hkdf = obj.Hkdf
     return nil
 }
@@ -308,7 +325,7 @@ type DeriveKeyRequest struct {
     // Type of key to be derived.
     KeyType ObjectType `json:"key_type"`
     // Key size of the derived key in bits.
-    KeySize uint32 `json:"key_size"`
+    KeySize *uint32 `json:"key_size,omitempty"`
     // Mechanism to use for key derivation.
     Mechanism DeriveKeyMechanism `json:"mechanism"`
     // Whether the derived key should have cryptographic operations enabled.
@@ -327,6 +344,8 @@ type DeriveKeyRequest struct {
     Transient *bool `json:"transient,omitempty"`
     // Export policy of the derived key
     ExportPolicy *SobjectExportPolicy `json:"export_policy,omitempty"`
+    // elliptic_curve the derived key, if applicable
+    EllipticCurve *EllipticCurve `json:"elliptic_curve,omitempty"`
 }
 
 // Request to compute the hash of arbitrary data.
@@ -531,6 +550,58 @@ type MacResponse struct {
     Mac Blob `json:"mac"`
 }
 
+type MlDsaMode struct {
+    // Sign `data` (FIPS 204 sectionsc 5.2 and 5.3)
+    Pure *struct{}
+    // Sign `hash` (FIPS 204 section 5.4)
+    PreHash *struct{}
+    // The message representative `mu` is already computed outside and passed
+    // through the `hash` field
+    ExternalMu *struct{}
+}
+func (x MlDsaMode) MarshalJSON() ([]byte, error) {
+    if err := checkEnumPointers(
+                  "MlDsaMode", 
+                  []bool{ x.Pure != nil,
+                  x.PreHash != nil,
+                  x.ExternalMu != nil });
+                  err != nil {
+        return nil, err
+    }
+    m := make(map[string]interface{})
+    switch {
+    case x.Pure != nil:
+        m["variant"] = "PURE"
+    case x.PreHash != nil:
+        m["variant"] = "PRE_HASH"
+    case x.ExternalMu != nil:
+        m["variant"] = "EXTERNAL_MU"
+    }
+    return json.Marshal(m)
+}
+func (x *MlDsaMode) UnmarshalJSON(data []byte) error {
+    x.Pure = nil
+    x.PreHash = nil
+    x.ExternalMu = nil
+    var h struct {
+        Tag string `json:"variant"`
+    }
+    if err := json.Unmarshal(data, &h); err != nil {
+        return errors.Errorf("not a valid MlDsaMode")
+    }
+    switch h.Tag {
+    case "PURE":
+        x.Pure = &struct{}{}
+    case "PRE_HASH":
+        x.PreHash = &struct{}{}
+    case "EXTERNAL_MU":
+        x.ExternalMu = &struct{}{}
+    default:
+         return errors.Errorf("invalid tag value: %v", h.Tag)
+    }
+    return nil
+}
+
 // Type of padding to use for RSA signatures. The padding specified must adhere to the key's
 // signature policy. If not specified, the default based on the key's policy will be used.
 type RsaSignaturePadding struct {
@@ -584,7 +655,7 @@ type SignRequest struct {
     //
     // Note that certain algorithms (SHA-1, SSL3, Blake2, Streebog) are
     // disallowed in FIPS mode.
-    HashAlg DigestAlgorithm `json:"hash_alg"`
+    HashAlg *DigestAlgorithm `json:"hash_alg,omitempty"`
     // Hashed data to be signed. Either `hash` or `data` should be specified;
     // it is an error to specify both or none.
     // Hash should be base64 encoded.
@@ -593,8 +664,9 @@ type SignRequest struct {
     // an error to specify both or none.
     // Data should be base64 encoded.
     Data *Blob `json:"data,omitempty"`
-    // Signature mechanism to use. This is only relevant for RSA signatures;
-    // it should not be specified for all other signature algorithms.
+    // Signature mechanism to use. This is only relevant for RSA and ML-DSA
+    // signatures; it should not be specified for all other signature
+    // algorithms.
     //
     // Additionally, in FIPS mode, if using PSS, the MGF1 hash function must
     // be the same as the data hashing function (under the `alg`) field.
@@ -618,6 +690,11 @@ type SignRequest struct {
     // Whether signatures should be deterministic. Defaults to false. If
     // specified, the value must be compatible with the key's settings.
     DeterministicSignature *bool `json:"deterministic_signature,omitempty"`
+    // The context parameter to be provided to the sign algorithm.
+    //
+    // Currently only ML-DSA keys accept a context parameter;
+    // this parameter must not be specified for any other key types.
+    Context *Blob `json:"context,omitempty"`
 }
 
 // Response of a signing request.
@@ -632,24 +709,36 @@ type SignResponse struct {
 type SignatureMode struct {
     // RSA Signature mechanism with padding
     Rsa *RsaSignaturePadding
+    // ML-DSA signature mode
+    MlDsa *MlDsaMode
 }
 func (x SignatureMode) MarshalJSON() ([]byte, error) {
     if err := checkEnumPointers(
                   "SignatureMode", 
-                  []bool{ x.Rsa != nil });
+                  []bool{ x.Rsa != nil,
+                  x.MlDsa != nil });
                   err != nil {
         return nil, err
     }
     if x.Rsa != nil {
         return json.Marshal(x.Rsa)
     }
+    if x.MlDsa != nil {
+        return json.Marshal(x.MlDsa)
+    }
     panic("unreachable")
 }
 func (x *SignatureMode) UnmarshalJSON(data []byte) error {
     x.Rsa = nil
+    x.MlDsa = nil
     var rsa RsaSignaturePadding
     if err := json.Unmarshal(data, &rsa); err == nil {
         x.Rsa = &rsa
+        return nil
+    }
+    var mlDsa MlDsaMode
+    if err := json.Unmarshal(data, &mlDsa); err == nil {
+        x.MlDsa = &mlDsa
         return nil
     }
     return errors.Errorf("not a valid SignatureMode")
@@ -658,33 +747,44 @@ func (x *SignatureMode) UnmarshalJSON(data []byte) error {
 // Options for mechanism to be used when transforming a key
 type TransformKeyMechanism struct {
     Bip32WeakChild *TransformKeyMechanismBip32WeakChild
+    Slip10WeakChild *TransformKeyMechanismSlip10WeakChild
 }
 type TransformKeyMechanismBip32WeakChild struct {
+    // The index of a weak child is an integer between 0 and 2**31 - 1.
+    Index uint32 `json:"index"`
+}
+type TransformKeyMechanismSlip10WeakChild struct {
     // The index of a weak child is an integer between 0 and 2**31 - 1.
     Index uint32 `json:"index"`
 }
 func (x TransformKeyMechanism) MarshalJSON() ([]byte, error) {
     if err := checkEnumPointers(
                   "TransformKeyMechanism", 
-                  []bool{ x.Bip32WeakChild != nil });
+                  []bool{ x.Bip32WeakChild != nil,
+                  x.Slip10WeakChild != nil });
                   err != nil {
         return nil, err
     }
     var obj struct {
         Bip32WeakChild *TransformKeyMechanismBip32WeakChild `json:"bip32_weak_child,omitempty"`
+        Slip10WeakChild *TransformKeyMechanismSlip10WeakChild `json:"slip10_weak_child,omitempty"`
     }
     obj.Bip32WeakChild = x.Bip32WeakChild
+    obj.Slip10WeakChild = x.Slip10WeakChild
     return json.Marshal(obj)
 }
 func (x *TransformKeyMechanism) UnmarshalJSON(data []byte) error {
     x.Bip32WeakChild = nil
+    x.Slip10WeakChild = nil
     var obj struct {
         Bip32WeakChild *TransformKeyMechanismBip32WeakChild `json:"bip32_weak_child,omitempty"`
+        Slip10WeakChild *TransformKeyMechanismSlip10WeakChild `json:"slip10_weak_child,omitempty"`
     }
     if err := json.Unmarshal(data, &obj); err != nil {
         return err
     }
     x.Bip32WeakChild = obj.Bip32WeakChild
+    x.Slip10WeakChild = obj.Slip10WeakChild
     return nil
 }
 
@@ -823,7 +923,7 @@ type VerifyRequest struct {
     //
     // Note that certain algorithms (SSL3, Blake2, Streebog) are disallowed
     // in FIPS mode.
-    HashAlg DigestAlgorithm `json:"hash_alg"`
+    HashAlg *DigestAlgorithm `json:"hash_alg,omitempty"`
     // The hash of the data on which the signature is being verified. Either
     // `hash` or `data` should be specified; it is an error to specify both
     // or none.
@@ -834,8 +934,8 @@ type VerifyRequest struct {
     // Data should be base64 encoded.
     Data *Blob `json:"data,omitempty"`
     // Signature mechanism to use for verification. This is only relevant
-    // for RSA signatures; it should not be specified for all other signature
-    // algorithms.
+    // for RSA and ML-DSA signatures; it should not be specified for all other
+    // signature algorithms.
     //
     // Additionally, in FIPS mode, if using PSS, the MGF1 hash function must
     // be the same as the data hashing function (under the `alg`) field.
@@ -858,6 +958,11 @@ type VerifyRequest struct {
     Mode *SignatureMode `json:"mode,omitempty"`
     // The signature to verify
     Signature ZeroizedBlob `json:"signature"`
+    // The context parameter to be provided to the verify algorithm.
+    //
+    // Currently only ML-DSA keys accept a context parameter;
+    // this parameter must not be specified for any other key types.
+    Context *Blob `json:"context,omitempty"`
 }
 
 // Result of verifying a signature or MAC.

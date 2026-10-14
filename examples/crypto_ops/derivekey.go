@@ -30,7 +30,7 @@ func sample_derive_key(client *sdkms.Client, objId string) {
 	deriveKeyReq := sdkms.DeriveKeyRequest{
 		Name:      &derivedName,
 		KeyType:   sdkms.ObjectTypeAria,
-		KeySize:   128,
+		KeySize:   sdkms.Some(uint32(128)),
 		Key:       sdkms.SobjectByID(objId),
 		Mechanism: sdkms.DeriveKeyMechanism{Hkdf: &deriveKeyMec},
 	}
