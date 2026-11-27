@@ -265,32 +265,21 @@ func (x AppAuthTypeVariants) MarshalJSON() ([]byte, error) {
     case x.All != nil:
         return []byte(`"All"`), nil
     }
-    var obj struct {
-        One *OneAppAuthType `json:"One,omitempty"`
-    }
-    obj.One = x.One
-    return json.Marshal(obj)
+    return json.Marshal(x.One)
 }
 func (x *AppAuthTypeVariants) UnmarshalJSON(data []byte) error {
     x.All = nil
     x.One = nil
     var str string
-    if err := json.Unmarshal(data, &str); err == nil {
-        switch str {
-        case "All":
+    if err := json.Unmarshal(data, &str); err == nil && str=="All"{
             x.All = &struct{}{}
-        default:
-            return errors.Errorf("invalid value for AppAuthTypeVariants: %v", str)
-        }
         return nil
     }
-    var obj struct {
-        One *OneAppAuthType `json:"One,omitempty"`
-    }
-    if err := json.Unmarshal(data, &obj); err != nil {
+    var one *OneAppAuthType 
+    if err := json.Unmarshal(data, &one); err != nil {
         return err
     }
-    x.One = obj.One
+    x.One = one
     return nil
 }
 
@@ -306,26 +295,31 @@ func (x AppCredential) MarshalJSON() ([]byte, error) {
                   err != nil {
         return nil, err
     }
-    var obj struct {
-        All *[]OneAppCredential `json:"all,omitempty"`
-        One *OneAppCredential `json:"one,omitempty"`
+    if x.All != nil {
+        var obj struct {
+            All *[]OneAppCredential `json:"all,omitempty"`
+        }
+        obj.All = x.All
+        return json.Marshal(obj);
     }
-    obj.All = x.All
-    obj.One = x.One
-    return json.Marshal(obj)
+    
+    return json.Marshal(x.One)
 }
 func (x *AppCredential) UnmarshalJSON(data []byte) error {
     x.All = nil
     x.One = nil
     var obj struct {
         All *[]OneAppCredential `json:"all,omitempty"`
-        One *OneAppCredential `json:"one,omitempty"`
     }
-    if err := json.Unmarshal(data, &obj); err != nil {
+    if err := json.Unmarshal(data, &obj); err == nil && obj.All != nil{
+        x.All = obj.All
+        return nil
+    }
+    var one *OneAppCredential
+    if err := json.Unmarshal(data, &one); err != nil {
         return err
     }
-    x.All = obj.All
-    x.One = obj.One
+    x.One = one
     return nil
 }
 
@@ -348,26 +342,31 @@ func (x AppCredentialRequest) MarshalJSON() ([]byte, error) {
                   err != nil {
         return nil, err
     }
-    var obj struct {
-        All *[]OneAppCredentialRequest `json:"all,omitempty"`
-        One *OneAppCredentialRequest `json:"one,omitempty"`
+    if x.All != nil {
+        var obj struct {
+            All *[]OneAppCredentialRequest `json:"all,omitempty"`
+        }
+        obj.All = x.All
+        return json.Marshal(obj)
     }
-    obj.All = x.All
-    obj.One = x.One
-    return json.Marshal(obj)
+    
+    return json.Marshal(x.One)
 }
 func (x *AppCredentialRequest) UnmarshalJSON(data []byte) error {
     x.All = nil
     x.One = nil
     var obj struct {
         All *[]OneAppCredentialRequest `json:"all,omitempty"`
-        One *OneAppCredentialRequest `json:"one,omitempty"`
     }
-    if err := json.Unmarshal(data, &obj); err != nil {
+    if err := json.Unmarshal(data, &obj); err != nil && obj.All !=nil {
+        x.All = obj.All
+        return nil
+    }
+    var one *OneAppCredentialRequest
+    if err := json.Unmarshal(data, &one); err != nil {
         return err
     }
-    x.All = obj.All
-    x.One = obj.One
+    x.One = one
     return nil
 }
 
